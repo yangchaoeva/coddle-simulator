@@ -7,9 +7,9 @@ export default function HomePage() {
 
   return (
     <PageShell
-      eyebrow="Stage 3 Mock AI Provider"
+      eyebrow="Stage 4 Real AI Provider"
       title="不是教你骗她原谅，而是教你真正听懂她。"
-      description="当前阶段已完成 Stage 3：训练流程和救急分析都由统一 mock AI provider 驱动，并经过 Schema 校验。仍然不接真实 AI、不接数据库、不接 BetterAuth。"
+      description="当前已接入真实 AI，训练回复、评分和复盘会经过 Schema 校验与 fallback。当前仍不接数据库、不接 BetterAuth，不保存训练记录。"
     >
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
@@ -18,7 +18,7 @@ export default function HomePage() {
             <h2 className="text-2xl font-semibold text-ink">首页直达完整流程</h2>
             <p className="text-sm leading-7 text-ink/70">
               路径固定为 <span className="font-medium text-ink">首页 → 角色 → 关卡 → 三轮训练 → 结果复盘</span>。
-              当前仍然不接数据库、不接 BetterAuth、不接真实 AI。
+              当前已接入真实 AI，但仍不接数据库、不接 BetterAuth，也不保存训练记录。
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link href="/characters" className="rounded-full bg-ink px-5 py-3 text-center text-sm font-medium text-white transition hover:bg-berry">
@@ -33,11 +33,11 @@ export default function HomePage() {
 
         <div className="rounded-4xl border border-berry/10 bg-berry p-6 text-white shadow-card">
           <div className="space-y-3">
-            <p className="text-sm uppercase tracking-[0.2em] text-white/70">Stage 3 说明</p>
+            <p className="text-sm uppercase tracking-[0.2em] text-white/70">Stage 4 说明</p>
             <ul className="space-y-3 text-sm leading-7 text-white/88">
-              <li>当前仍使用 mock AI provider，不接真实模型。</li>
-              <li>当前仍不接数据库、不接 BetterAuth，也不保存救急真实聊天。</li>
-              <li>所有训练和救急结果都走结构化 Schema 校验与 fallback。</li>
+              <li>当前已接入真实 AI，用于训练回复、评分、复盘和救急分析。</li>
+              <li>所有训练和救急结果都会经过结构化 Schema 校验与 fallback。</li>
+              <li>当前仍不接数据库、不接 BetterAuth，也不保存训练记录。</li>
             </ul>
           </div>
         </div>

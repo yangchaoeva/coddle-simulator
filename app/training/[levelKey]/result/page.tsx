@@ -32,7 +32,11 @@ export default function ResultPage() {
 
   if (!result) {
     return (
-      <PageShell eyebrow="Result" title="没有找到这次训练结果" description="当前结果页仍沿用 Stage 1/2/3 的临时本地缓存方案。你可以重新完成一次三轮训练来生成结果。">
+      <PageShell
+        eyebrow="Result"
+        title="没有找到这次训练结果"
+        description="当前结果页仍沿用临时本地缓存方案。你可以重新完成一次三轮训练来生成结果。"
+      >
         <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
           <Link href="/characters" className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white">
             返回角色选择
@@ -48,7 +52,7 @@ export default function ResultPage() {
     <PageShell
       eyebrow="Final Review"
       title={`${result.characterName} · ${result.levelName} 复盘`}
-      description="当前为 Stage 3：这里展示的是 mock AI provider 生成并经过 Schema 校验的最终复盘。结果页路由仍保持当前临时方案。"
+      description="当前已接入真实 AI，训练回复、评分和复盘会经过 Schema 校验与 fallback。当前仍不接数据库、不接 BetterAuth，不保存训练记录。"
     >
       <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <aside className="space-y-5 rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
@@ -126,7 +130,7 @@ export default function ResultPage() {
                   {round.userReply || "（空白回复）"}
                 </p>
                 <p className="mt-2 text-sm leading-7 text-ink/80">
-                  <span className="font-medium text-ink">她的反馈：</span>
+                  <span className="font-medium text-ink">她的回复：</span>
                   {round.girlfriendReply.girlfriendReply}
                 </p>
                 <p className="mt-2 text-sm leading-7 text-ink/68">{round.score.roundFeedback}</p>

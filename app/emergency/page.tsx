@@ -21,14 +21,16 @@ export default function EmergencyPage() {
     <PageShell
       eyebrow="Emergency"
       title="救急模式"
-      description="当前为 Stage 3：救急页接入 mock emergency analysis，并统一输出结构化结果。默认不保存真实聊天，也不接真实 AI。"
+      description="输入一段真实聊天内容，系统会返回结构化的情绪分析、潜台词、风险提醒和建议回复方向。默认不保存真实聊天内容。"
     >
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-5 rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
           <div className="space-y-3">
             <p className="text-sm uppercase tracking-[0.2em] text-coral">输入真实聊天</p>
             <h2 className="text-2xl font-semibold text-ink">先分析，再决定怎么回</h2>
-            <p className="text-sm leading-7 text-ink/70">贴一段她刚发来的话，系统会返回 mock 的情绪分析、潜台词、风险提醒和建议回复方向。</p>
+            <p className="text-sm leading-7 text-ink/70">
+              贴一段她刚发来的话，系统会返回结构化的情绪分析、潜台词、风险提醒和建议回复方向。
+            </p>
           </div>
 
           <textarea
@@ -47,12 +49,17 @@ export default function EmergencyPage() {
             >
               {loading ? "分析中..." : "生成分析"}
             </button>
-            <Link href="/characters" className="rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white">
+            <Link
+              href="/characters"
+              className="rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white"
+            >
               去训练模式
             </Link>
           </div>
 
-          <p className="text-xs leading-6 text-ink/55">当前为 Stage 3 mock 分析，未接真实 AI。</p>
+          <p className="text-xs leading-6 text-ink/55">
+            当前接入真实 AI，输出仍会经过结构化校验和 fallback。
+          </p>
         </div>
 
         <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
@@ -121,7 +128,7 @@ export default function EmergencyPage() {
             </div>
           ) : (
             <div className="flex min-h-full items-center justify-center rounded-3xl border border-dashed border-ink/15 bg-cream/60 p-8 text-center text-sm leading-7 text-ink/60">
-              这里会显示 mock 分析结果。当前阶段不接真实 AI，也不提供保存或转训练能力。
+              这里会显示结构化分析结果。当前阶段不提供保存或转训练能力。
             </div>
           )}
         </div>

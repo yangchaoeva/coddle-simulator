@@ -1,5 +1,11 @@
-import { mockAIProvider } from "@/ai/mock-provider";
 import type { ProviderHistoryItem } from "@/ai/provider";
+import type {
+  EmergencyAnalysisResult,
+  FinalReviewResult,
+  GirlfriendReplyResult,
+  InputValidationResult,
+  RoundScoreResult,
+} from "@/ai/schemas";
 import { characters } from "@/config/characters";
 import { levelSeeds } from "@/data/levels";
 import type { CharacterConfig, CharacterType } from "@/types/character";
@@ -26,9 +32,9 @@ export function getCharacterOverview(character: CharacterConfig) {
   return {
     type: character.characterType,
     title: character.characterName,
-    summary: `${character.personalityKeywords.slice(0, 3).join(" / ")} · ${character.coreNeed}`,
+    summary: `${character.personalityKeywords.slice(0, 3).join(" / ")} 路 ${character.coreNeed}`,
     trainingFocus: character.comfortMechanism,
-    dangerZone: character.dangerZones.join(" · "),
+    dangerZone: character.dangerZones.join(" 路 "),
     keywords: character.personalityKeywords,
   };
 }
@@ -39,6 +45,22 @@ export function generateResultId() {
   }
 
   return `result-${Date.now()}`;
+}
+
+async function callAIEndpoint<T>(action: string, payload: unknown): Promise<T> {
+  const response = await fetch(`/api/ai/${action}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`AI endpoint failed: ${action}`);
+  }
+
+  return (await response.json()) as T;
 }
 
 function toProviderHistory(rounds: RoundRecord[]): ProviderHistoryItem[] {
@@ -64,7 +86,7 @@ export async function runTrainingRound(args: {
   rounds: RoundRecord[];
 }): Promise<TrainingRoundOutcome> {
   const history = toProviderHistory(args.rounds);
-  const validation = await mockAIProvider.validateUserInput({
+  const validation = await callAIEndpoint<InputValidationResult>("validate", {
     level: args.level,
     character: args.character,
     roundNumber: args.roundNumber,
@@ -81,7 +103,7 @@ export async function runTrainingRound(args: {
     };
   }
 
-  const girlfriendReply = await mockAIProvider.generateGirlfriendReply({
+  const girlfriendReply = await callAIEndpoint<GirlfriendReplyResult>("girlfriend-reply", {
     level: args.level,
     character: args.character,
     roundNumber: args.roundNumber,
@@ -91,7 +113,7 @@ export async function runTrainingRound(args: {
     trustScore: args.trustBefore,
   });
 
-  const score = await mockAIProvider.scoreRound({
+  const score = await callAIEndpoint<RoundScoreResult>("score-round", {
     level: args.level,
     character: args.character,
     roundNumber: args.roundNumber,
@@ -122,7 +144,7 @@ export async function runTrainingRound(args: {
 }
 
 export async function buildFinalReview(level: LevelSeed, character: CharacterConfig, rounds: RoundRecord[]): Promise<FinalReview> {
-  return mockAIProvider.generateFinalReview({
+  return callAIEndpoint<FinalReviewResult>("final-review", {
     level,
     character,
     history: toProviderHistory(rounds),
@@ -162,7 +184,7 @@ export async function buildTrainingResult(levelKey: string, rounds: RoundRecord[
 }
 
 export async function analyzeEmergencyMessage(message: string): Promise<EmergencyAnalysis> {
-  return mockAIProvider.analyzeEmergencyMessage({ message });
+  return callAIEndpoint<EmergencyAnalysisResult>("emergency-analysis", { message });
 }
 
 export function getCharacterTypeOptions(): CharacterType[] {
