@@ -84,8 +84,10 @@ export async function runTrainingRound(args: {
   level: LevelSeed;
   character: CharacterConfig;
   rounds: RoundRecord[];
+  onStageChange?: (stage: "validate" | "girlfriend-reply" | "score-round") => void;
 }): Promise<TrainingRoundOutcome> {
   const history = toProviderHistory(args.rounds);
+  args.onStageChange?.("validate");
   const validation = await callAIEndpoint<InputValidationResult>("validate", {
     level: args.level,
     character: args.character,
@@ -103,6 +105,7 @@ export async function runTrainingRound(args: {
     };
   }
 
+  args.onStageChange?.("girlfriend-reply");
   const girlfriendReply = await callAIEndpoint<GirlfriendReplyResult>("girlfriend-reply", {
     level: args.level,
     character: args.character,
@@ -113,6 +116,7 @@ export async function runTrainingRound(args: {
     trustScore: args.trustBefore,
   });
 
+  args.onStageChange?.("score-round");
   const score = await callAIEndpoint<RoundScoreResult>("score-round", {
     level: args.level,
     character: args.character,

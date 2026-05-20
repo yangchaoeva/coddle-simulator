@@ -5,6 +5,7 @@ export type AIDiagnosticRecord = {
   action: string;
   providerMode: ProviderMode;
   agentName: string;
+  durationMs?: number;
   apiStatus?: number;
   jsonParse: "success" | "failed" | "skipped";
   schemaValidation: "success" | "failed" | "skipped";

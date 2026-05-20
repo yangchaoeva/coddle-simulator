@@ -23,21 +23,25 @@ const agentNameByAction: Record<string, string> = {
   "emergency-analysis": "EmergencyAnalysisAgent",
 };
 
-function buildJsonResponse(action: string, providerMode: string, result: unknown) {
+function buildJsonResponse(action: string, providerMode: string, result: unknown, durationMs: number) {
   const fallbackUsed = typeof result === "object" && result !== null && "fallback" in result ? Boolean(result.fallback) : false;
   const errorType =
     typeof result === "object" && result !== null && "errorType" in result && typeof result.errorType === "string"
       ? result.errorType
       : "";
   const diagnostic = getLatestAIDiagnostic(action);
+  const timestamp = new Date().toISOString();
 
   console.info("[ai-route]", {
-    timestamp: new Date().toISOString(),
+    timestamp,
     action,
     providerMode,
+    durationMs,
     agentName: agentNameByAction[action] ?? "UnknownAgent",
     fallbackUsed,
     errorType,
+    jsonParse: diagnostic?.jsonParse ?? "skipped",
+    schemaValidation: diagnostic?.schemaValidation ?? "skipped",
     zodErrorSummary: diagnostic?.zodErrorSummary,
   });
 
@@ -51,7 +55,8 @@ function buildJsonResponse(action: string, providerMode: string, result: unknown
       "x-ai-schema-validation": diagnostic?.schemaValidation ?? "skipped",
       "x-ai-api-status": diagnostic?.apiStatus ? String(diagnostic.apiStatus) : "",
       "x-ai-zod-summary": diagnostic?.zodErrorSummary ?? "",
-      "x-ai-timestamp": diagnostic?.timestamp ?? "",
+      "x-ai-duration-ms": String(durationMs),
+      "x-ai-timestamp": diagnostic?.timestamp ?? timestamp,
     },
   });
 }
@@ -61,18 +66,20 @@ export async function POST(request: Request, context: RouteContext) {
   const providerMode = getServerAIProviderMode();
   const provider = getServerAIProvider();
   const payload = await request.json();
+  const startedAt = Date.now();
+  const withDuration = (result: unknown) => buildJsonResponse(action, providerMode, result, Date.now() - startedAt);
 
   switch (action) {
     case "validate":
-      return buildJsonResponse(action, providerMode, await provider.validateUserInput(payload as ValidateUserInputParams));
+      return withDuration(await provider.validateUserInput(payload as ValidateUserInputParams));
     case "girlfriend-reply":
-      return buildJsonResponse(action, providerMode, await provider.generateGirlfriendReply(payload as GirlfriendReplyParams));
+      return withDuration(await provider.generateGirlfriendReply(payload as GirlfriendReplyParams));
     case "score-round":
-      return buildJsonResponse(action, providerMode, await provider.scoreRound(payload as RoundScoreParams));
+      return withDuration(await provider.scoreRound(payload as RoundScoreParams));
     case "final-review":
-      return buildJsonResponse(action, providerMode, await provider.generateFinalReview(payload as FinalReviewParams));
+      return withDuration(await provider.generateFinalReview(payload as FinalReviewParams));
     case "emergency-analysis":
-      return buildJsonResponse(action, providerMode, await provider.analyzeEmergencyMessage(payload as EmergencyAnalysisParams));
+      return withDuration(await provider.analyzeEmergencyMessage(payload as EmergencyAnalysisParams));
     default:
       return NextResponse.json({ error: "Unknown AI action." }, { status: 404 });
   }
