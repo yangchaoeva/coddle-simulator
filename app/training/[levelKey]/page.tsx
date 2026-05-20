@@ -4,17 +4,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageShell } from "@/components/shell";
-import {
-  buildTrainingResult,
-  getCharacterByType,
-  getLevelByKey,
-  playMockRound,
-} from "@/lib/training";
+import { buildTrainingResult, getCharacterByType, getLevelByKey, playMockRound } from "@/lib/training";
 import { saveTrainingResult } from "@/lib/storage";
-import type { RoundRecord } from "@/data/mock";
-
-const initialEmotion = -45;
-const initialTrust = 42;
+import type { RoundRecord } from "@/types/training";
 
 function StatBar({ label, value, min }: { label: string; value: number; min?: number }) {
   const maxValue = min === -100 ? 100 : 100;
@@ -42,6 +34,8 @@ export default function TrainingPage() {
   const [rounds, setRounds] = useState<RoundRecord[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  const initialEmotion = level?.initialEmotionScore ?? -45;
+  const initialTrust = level?.initialTrustScore ?? 42;
   const currentRound = rounds.length + 1;
   const emotionValue = rounds.at(-1)?.emotionAfter ?? initialEmotion;
   const trustValue = rounds.at(-1)?.trustAfter ?? initialTrust;
@@ -60,7 +54,7 @@ export default function TrainingPage() {
 
   if (!level || !character) {
     return (
-      <PageShell eyebrow="Training" title="关卡不存在" description="没有找到对应的 mock 关卡，请回到角色页重新选择。">
+      <PageShell eyebrow="Training" title="关卡不存在" description="没有找到对应的本地关卡数据，请回到角色页重新选择。">
         <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
           <Link href="/characters" className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white">
             返回角色选择
@@ -107,8 +101,8 @@ export default function TrainingPage() {
   return (
     <PageShell
       eyebrow="Training"
-      title={`${character.name} · ${level.sceneName}`}
-      description={`Stage 1 这里使用 mock 女友回复和 mock 评分。你需要完成 3 轮回应，每轮都会更新情绪值与信任值，并在第 3 轮后自动跳转到结果页。`}
+      title={`${character.characterName} · ${level.sceneName}`}
+      description="Stage 2 已切换为正式本地角色卡和关卡种子数据，但仍然使用 mock 女友回复和 mock 评分完成三轮训练。"
     >
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <aside className="space-y-5 rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
@@ -128,6 +122,26 @@ export default function TrainingPage() {
             <StatBar label="情绪值" value={emotionValue} min={-100} />
             <StatBar label="信任值" value={trustValue} />
             <p className="text-sm text-ink/60">当前轮次：第 {Math.min(currentRound, 3)} / 3 轮</p>
+          </div>
+
+          <div className="space-y-3 rounded-3xl border border-ink/10 p-4">
+            <p className="text-sm font-medium text-ink">训练重点</p>
+            <div className="flex flex-wrap gap-2">
+              {level.trainingFocus.map((item) => (
+                <span key={item} className="rounded-full bg-sage/20 px-3 py-1 text-xs font-medium text-ink">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-3xl border border-ink/10 p-4">
+            <p className="text-sm font-medium text-ink">风险提醒</p>
+            <ul className="space-y-2 text-sm leading-7 text-ink/68">
+              {level.riskRules.map((item) => (
+                <li key={item}>• {item}</li>
+              ))}
+            </ul>
           </div>
 
           <div className="space-y-3 rounded-3xl border border-ink/10 p-4">

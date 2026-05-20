@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/shell";
 import { analyzeEmergencyMessage } from "@/lib/training";
-import type { EmergencyAnalysis } from "@/data/mock";
+import type { EmergencyAnalysis } from "@/types/training";
 
 export default function EmergencyPage() {
   const [message, setMessage] = useState("");

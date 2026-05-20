@@ -1,4 +1,4 @@
-import type { TrainingResult } from "@/data/mock";
+import type { TrainingResult } from "@/types/training";
 
 const STORAGE_KEY = "coddle-stage1-results";
 

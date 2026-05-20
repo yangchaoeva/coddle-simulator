@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { PageShell } from "@/components/shell";
 import { getLatestTrainingResultByLevelKey } from "@/lib/storage";
 import { getLevelsByCharacter } from "@/lib/training";
-import type { TrainingResult } from "@/data/mock";
+import type { TrainingResult } from "@/types/training";
 
 function ScoreBar({ label, value }: { label: string; value: number }) {
   return (

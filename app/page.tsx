@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { PageShell } from "@/components/shell";
-import { getCharacters } from "@/lib/training";
+import { getCharacterOverview, getCharacters } from "@/lib/training";
 
 export default function HomePage() {
-  const characters = getCharacters();
+  const characters = getCharacters().map(getCharacterOverview);
 
   return (
     <PageShell
-      eyebrow="Stage 1 Mock Flow"
+      eyebrow="Stage 2 Local Data"
       title="不是教你骗她原谅，而是教你真正听懂她。"
-      description="这一版只做训练闭环和救急入口。你可以从首页直接进入角色选择，完成三轮 mock 对话、查看 mock 评分复盘；也可以先用救急页体验即时分析。"
+      description="这一版继续保持 Stage 1 的 mock 三轮训练闭环，但角色和关卡内容已经升级为正式的本地配置数据。"
     >
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
@@ -17,7 +17,8 @@ export default function HomePage() {
             <span className="inline-flex rounded-full bg-coral/15 px-3 py-1 text-sm font-medium text-coral">训练闭环</span>
             <h2 className="text-2xl font-semibold text-ink">首页直达完整流程</h2>
             <p className="text-sm leading-7 text-ink/70">
-              路径固定为 <span className="font-medium text-ink">首页 → 角色 → 关卡 → 三轮训练 → 结果复盘</span>。当前全部使用 mock 数据，不接数据库、不接 BetterAuth、不接真实 AI。
+              路径固定为 <span className="font-medium text-ink">首页 → 角色 → 关卡 → 三轮训练 → 结果复盘</span>。
+              当前仍然不接数据库、不接 BetterAuth、不接真实 AI。
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link href="/characters" className="rounded-full bg-ink px-5 py-3 text-center text-sm font-medium text-white transition hover:bg-berry">
@@ -36,7 +37,7 @@ export default function HomePage() {
             <ul className="space-y-3 text-sm leading-7 text-white/88">
               <li>不教操控、欺骗、冷暴力或套路话术。</li>
               <li>不承诺百分百哄好，只训练理解、回应、承担与修复。</li>
-              <li>救急页默认不保存真实聊天内容，Stage 1 也不会接入保存能力。</li>
+              <li>救急页默认不保存真实聊天内容，当前阶段也不会接入保存能力。</li>
             </ul>
           </div>
         </div>
@@ -62,9 +63,9 @@ export default function HomePage() {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-coral">{character.title}</p>
-                  <h3 className="mt-1 text-xl font-semibold text-ink">{character.name}</h3>
+                  <h3 className="mt-1 text-xl font-semibold text-ink">{character.keywords.join(" / ")}</h3>
                 </div>
-                <p className="text-sm leading-7 text-ink/72">{character.tagline}</p>
+                <p className="text-sm leading-7 text-ink/72">{character.summary}</p>
                 <p className="text-sm text-ink/60">训练重点：{character.trainingFocus}</p>
               </div>
             </Link>

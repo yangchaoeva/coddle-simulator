@@ -1,13 +1,8 @@
-import {
-  characterCards,
-  levels,
-  type CharacterCard,
-  type EmergencyAnalysis,
-  type FinalReview,
-  type LevelConfig,
-  type RoundRecord,
-  type TrainingResult,
-} from "@/data/mock";
+import { characters } from "@/config/characters";
+import { levelSeeds } from "@/data/levels";
+import type { CharacterConfig, CharacterType } from "@/types/character";
+import type { LevelSeed } from "@/types/level";
+import type { EmergencyAnalysis, FinalReview, RoundRecord, TrainingResult } from "@/types/training";
 
 type ScoreSummary = {
   deltaEmotion: number;
@@ -18,24 +13,35 @@ type ScoreSummary = {
 };
 
 const empathyWords = ["理解", "感受", "难受", "委屈", "失望", "在乎", "听你", "明白"];
-const accountabilityWords = ["对不起", "抱歉", "是我", "我没有", "我忽略", "我做错"];
+const accountabilityWords = ["对不起", "抱歉", "是我", "我没", "我忽略", "我做错"];
 const repairWords = ["以后", "下次", "现在", "安排", "补上", "会", "改", "陪你"];
 const harmfulWords = ["你想太多", "随便", "有病", "烦", "矫情", "闭嘴"];
 
-export function getCharacters() {
-  return characterCards;
+export function getCharacters(): CharacterConfig[] {
+  return characters;
 }
 
-export function getCharacterByType(characterType: string): CharacterCard | null {
-  return characterCards.find((item) => item.type === characterType) ?? null;
+export function getCharacterByType(characterType: string): CharacterConfig | null {
+  return characters.find((item) => item.characterType === characterType) ?? null;
 }
 
-export function getLevelsByCharacter(characterType: string) {
-  return levels.filter((item) => item.characterType === characterType);
+export function getLevelsByCharacter(characterType: string): LevelSeed[] {
+  return levelSeeds.filter((item) => item.characterType === characterType);
 }
 
-export function getLevelByKey(levelKey: string): LevelConfig | null {
-  return levels.find((item) => item.levelKey === levelKey) ?? null;
+export function getLevelByKey(levelKey: string): LevelSeed | null {
+  return levelSeeds.find((item) => item.levelKey === levelKey) ?? null;
+}
+
+export function getCharacterOverview(character: CharacterConfig) {
+  return {
+    type: character.characterType,
+    title: character.characterName,
+    summary: `${character.personalityKeywords.slice(0, 3).join(" / ")}。${character.coreNeed}`,
+    trainingFocus: character.comfortMechanism,
+    dangerZone: character.dangerZones.join("、"),
+    keywords: character.personalityKeywords,
+  };
 }
 
 export function generateResultId() {
@@ -50,7 +56,7 @@ function includesAny(text: string, keywords: string[]) {
   return keywords.some((keyword) => text.includes(keyword));
 }
 
-function judgeReply(input: string, roundNumber: number): ScoreSummary {
+function judgeReply(input: string, roundNumber: number, level: LevelSeed): ScoreSummary {
   const normalized = input.trim();
 
   if (!normalized) {
@@ -63,12 +69,17 @@ function judgeReply(input: string, roundNumber: number): ScoreSummary {
     };
   }
 
-  if (includesAny(normalized, harmfulWords)) {
+  const matchedRiskRules = level.riskRules.filter((rule) => {
+    const normalizedRule = rule.replace(/^不要/, "").replace(/^别/, "").trim();
+    return normalizedRule.length >= 2 && normalized.includes(normalizedRule.slice(0, Math.min(4, normalizedRule.length)));
+  });
+
+  if (includesAny(normalized, harmfulWords) || matchedRiskRules.length > 0) {
     return {
       deltaEmotion: -18,
       deltaTrust: -16,
-      roundFeedback: "这类表达会直接加剧冲突，先停下反击，重新组织更尊重的回应。",
-      riskFlags: ["攻击性表达"],
+      roundFeedback: "这类表达会直接加剧冲突，先停下反击，重新组织更尊重她感受的回应。",
+      riskFlags: matchedRiskRules.length > 0 ? matchedRiskRules : ["攻击性表达"],
       quality: "bad",
     };
   }
@@ -144,20 +155,24 @@ function judgeReply(input: string, roundNumber: number): ScoreSummary {
   };
 }
 
-function getGirlfriendReply(
-  character: CharacterCard,
-  level: LevelConfig,
-  roundNumber: number,
-  quality: ScoreSummary["quality"],
-) {
+function getGirlfriendReply(character: CharacterConfig, level: LevelSeed, roundNumber: number, quality: ScoreSummary["quality"]) {
+  const isExpressive = character.characterType === "emotionally_expressive";
+  const isCold = character.characterType === "cold_suppressed";
+
   if (roundNumber === 1) {
     if (quality === "good") {
-      return `我知道你是在认真听我说，可我现在还是有点别扭，因为这件事确实让我很${character.type === "expressive" ? "上头" : "失望"}。`;
+      if (isExpressive) {
+        return "好，至少你现在没有继续跟我对着来，但我情绪还没完全下来。";
+      }
+      if (isCold) {
+        return "我知道你有在认真听，但这些失望也不是一下子就能过去的。";
+      }
+      return `我知道你是在认真听我说，可我现在还是有点别扭，因为“${level.sceneName}”这件事确实让我很失望。`;
     }
     if (quality === "mixed") {
       return "你这样说比刚才好一点，但我还是会担心你只是在安抚我，没有真的明白。";
     }
-    return "你还是在回避重点，我难受的根本不是表面这件事。";
+    return "你还是在回避重点，我难受的根本不只是表面这件事。";
   }
 
   if (roundNumber === 2) {
@@ -167,16 +182,16 @@ function getGirlfriendReply(
     if (quality === "mixed") {
       return "我能听到一点诚意，但还是不够落地，我需要的不是一句以后注意。";
     }
-    return "如果你还是这样讲，我真的会越来越不想继续说下去。";
+    return isCold ? "如果你还是这样说，我可能真的不想再继续往下聊了。" : "如果你还是这样讲，我真的会越来越不想继续说下去。";
   }
 
   if (quality === "good") {
-    return "这次我愿意继续跟你往下聊，因为你终于不是只顾着解释自己了。";
+    return isCold ? "这次我愿意继续跟你往下聊，因为你终于不是只想快点把这件事翻过去了。" : "这次我愿意继续跟你往下聊，因为你终于不是只顾着解释自己了。";
   }
   if (quality === "mixed") {
     return "我没有完全被说服，但至少比一开始更愿意听你继续修复。";
   }
-  return `${character.name}沉默了几秒，只回了一句：“你还是没懂。”`;
+  return `${character.characterName}沉默了几秒，只回了一句：“你还是没懂。”`;
 }
 
 export function playMockRound(args: {
@@ -184,10 +199,10 @@ export function playMockRound(args: {
   userReply: string;
   emotionBefore: number;
   trustBefore: number;
-  level: LevelConfig;
-  character: CharacterCard;
+  level: LevelSeed;
+  character: CharacterConfig;
 }): RoundRecord {
-  const judged = judgeReply(args.userReply, args.roundNumber);
+  const judged = judgeReply(args.userReply, args.roundNumber, args.level);
   const emotionAfter = Math.max(-100, Math.min(100, args.emotionBefore + judged.deltaEmotion));
   const trustAfter = Math.max(0, Math.min(100, args.trustBefore + judged.deltaTrust));
 
@@ -233,10 +248,10 @@ export function buildFinalReview(rounds: RoundRecord[]): FinalReview {
 
   const emotionRecognition = clampScore(55 + rounds.filter((item) => item.userReply.includes("感受") || item.userReply.includes("难受") || item.userReply.includes("失望")).length * 12);
   const empathy = clampScore(58 + rounds.filter((item) => item.userReply.includes("理解") || item.userReply.includes("委屈") || item.userReply.includes("在乎")).length * 12);
-  const responsibility = clampScore(54 + rounds.filter((item) => item.userReply.includes("对不起") || item.userReply.includes("是我") || item.userReply.includes("我没有")).length * 14);
+  const responsibility = clampScore(54 + rounds.filter((item) => item.userReply.includes("对不起") || item.userReply.includes("是我") || item.userReply.includes("我没")).length * 14);
   const explanationControl = clampScore(78 - rounds.filter((item) => item.userReply.includes("但是") || item.userReply.includes("可是")).length * 10);
   const actionClarity = clampScore(50 + rounds.filter((item) => item.userReply.includes("会") || item.userReply.includes("安排") || item.userReply.includes("现在")).length * 13);
-  const relationshipRepair = clampScore(Math.round((emotionEnd + 100) / 2 * 0.4 + trustEnd * 0.6));
+  const relationshipRepair = clampScore(Math.round((((emotionEnd + 100) / 2) * 0.4) + (trustEnd * 0.6)));
 
   const summary =
     totalScore >= 76
@@ -245,20 +260,14 @@ export function buildFinalReview(rounds: RoundRecord[]): FinalReview {
         ? "你有在往正确方向走，但修复动作还不够稳定，容易停在道歉而不是落实。"
         : "这次训练里，你还没有稳定地接住情绪和承担责任，关系修复力度偏弱。";
 
-  const betterReply =
-    "我刚才的做法确实让你觉得自己不被重视，这不是你想太多。对不起。现在我先认真听你说完，然后把我接下来会怎么改讲清楚。";
-
-  const lesson =
-    "先承认感受，再承担责任，最后给具体行动。不要急着解释自己为什么那样做。";
-
   return {
     totalScore,
     grade,
     endingType,
     summary,
     keyProblems: riskFlags.length > 0 ? riskFlags : ["补救动作可以更具体"],
-    betterReply,
-    lesson,
+    betterReply: "我刚才的做法确实让你觉得自己不被重视，这不是你想太多。对不起。我现在先认真听你说完，然后把我接下来会怎么改讲清楚。",
+    lesson: "先承认感受，再承担责任，最后给具体行动。不要急着解释自己为什么那样做。",
     emotionRecognition,
     empathy,
     responsibility,
@@ -283,14 +292,14 @@ export function buildTrainingResult(levelKey: string, rounds: RoundRecord[]): Tr
     id: generateResultId(),
     levelKey: level.levelKey,
     characterType: level.characterType,
-    characterName: character.name,
+    characterName: character.characterName,
     levelName: level.sceneName,
     taskTarget: level.taskTarget,
     createdAt: new Date().toISOString(),
-    emotionStart: -45,
-    emotionEnd: rounds.at(-1)?.emotionAfter ?? -45,
-    trustStart: 42,
-    trustEnd: rounds.at(-1)?.trustAfter ?? 42,
+    emotionStart: level.initialEmotionScore,
+    emotionEnd: rounds.at(-1)?.emotionAfter ?? level.initialEmotionScore,
+    trustStart: level.initialTrustScore,
+    trustEnd: rounds.at(-1)?.trustAfter ?? level.initialTrustScore,
     rounds,
     finalReview: buildFinalReview(rounds),
   };
@@ -305,7 +314,7 @@ export function analyzeEmergencyMessage(message: string): EmergencyAnalysis {
       hiddenNeed: "先把对方原话补充完整，再分析会更准。",
       riskWarnings: ["当前输入为空，无法判断语气和情境。"],
       replyStrategy: "先不要急着回，先整理出对方原话和前因后果。",
-      suggestedReply: "我先把你刚才那句话认真看明白，再决定怎么回。",
+      suggestedReply: "我先把你刚才那句原话看清楚，再决定怎么回。",
       doNotSay: ["你想多了", "有事直说"],
     };
   }
@@ -325,13 +334,13 @@ export function analyzeEmergencyMessage(message: string): EmergencyAnalysis {
   return {
     emotion,
     hiddenNeed,
-    riskWarnings: [
-      "不要立刻解释自己为什么这么做。",
-      "不要把她的情绪定义成无理取闹。",
-    ],
+    riskWarnings: ["不要立刻解释自己为什么这么做。", "不要把她的情绪定义成无理取闹。"],
     replyStrategy: "先接住她当下的感受，再用一句责任承担说明你听懂了，最后给一个具体且当下可执行的补救动作。",
-    suggestedReply:
-      "我能感觉到你现在不是单纯在说这句话本身，而是真的有点失望。刚才那件事是我没处理好。我先认真听你说完，再把我接下来怎么补上讲清楚。",
+    suggestedReply: "我能感觉到你现在不是单纯在说这句话本身，而是真的有点失望。刚才那件事是我没处理好。我先认真听你说完，再把我接下来怎么补上讲清楚。",
     doNotSay: ["你别上纲上线", "我已经很累了你还要怎样", "这有什么好生气的"],
   };
+}
+
+export function getCharacterTypeOptions(): CharacterType[] {
+  return characters.map((item) => item.characterType);
 }
