@@ -34,7 +34,7 @@ export default function LevelsPage() {
     <PageShell
       eyebrow={character.characterName}
       title={`${character.characterName}的 3 个训练关卡`}
-      description={`她的表达风格包括：${character.expressionStyle.join("、")}。当前继续保持 Stage 1 的三轮 mock 训练，但关卡内容已经来自正式本地种子数据。`}
+      description={`她的表达风格包括：${character.expressionStyle.join(" · ")}。当前为 Stage 3：关卡继续读取本地数据，训练内回复与评分由 mock AI provider 生成。`}
     >
       <section className="grid gap-5 xl:grid-cols-3">
         {characterLevels.map((level) => (
@@ -54,7 +54,7 @@ export default function LevelsPage() {
               </div>
               <div className="text-sm leading-7 text-ink/70">
                 <p className="font-medium text-ink">训练重点</p>
-                <p>{level.trainingFocus.join("、")}</p>
+                <p>{level.trainingFocus.join(" · ")}</p>
               </div>
               <Link
                 href={`/training/${level.levelKey}`}

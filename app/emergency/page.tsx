@@ -9,12 +9,19 @@ import type { EmergencyAnalysis } from "@/types/training";
 export default function EmergencyPage() {
   const [message, setMessage] = useState("");
   const [analysis, setAnalysis] = useState<EmergencyAnalysis | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleAnalyze = async () => {
+    setLoading(true);
+    setAnalysis(await analyzeEmergencyMessage(message));
+    setLoading(false);
+  };
 
   return (
     <PageShell
       eyebrow="Emergency"
       title="救急模式"
-      description="Stage 1 先做输入框和 mock 分析结果。默认不保存真实聊天内容，也不会自动代发消息。这里只是帮你先看情绪、潜台词和回复方向。"
+      description="当前为 Stage 3：救急页接入 mock emergency analysis，并统一输出结构化结果。默认不保存真实聊天，也不接真实 AI。"
     >
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-5 rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
@@ -34,15 +41,18 @@ export default function EmergencyPage() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
-              onClick={() => setAnalysis(analyzeEmergencyMessage(message))}
+              onClick={handleAnalyze}
+              disabled={loading}
               className="rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition hover:bg-berry"
             >
-              生成 mock 分析
+              {loading ? "分析中..." : "生成分析"}
             </button>
-            <Link href="/characters" className="rounded-full border border-ink/15 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30">
+            <Link href="/characters" className="rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white">
               去训练模式
             </Link>
           </div>
+
+          <p className="text-xs leading-6 text-ink/55">当前为 Stage 3 mock 分析，未接真实 AI。</p>
         </div>
 
         <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
@@ -50,7 +60,7 @@ export default function EmergencyPage() {
             <div className="space-y-5">
               <section className="rounded-3xl bg-cream p-4">
                 <p className="text-sm font-medium text-ink">她可能的情绪</p>
-                <p className="mt-2 text-sm leading-7 text-ink/75">{analysis.emotion}</p>
+                <p className="mt-2 text-sm leading-7 text-ink/75">{analysis.detectedEmotion}</p>
               </section>
 
               <section className="rounded-3xl border border-ink/10 p-4">
@@ -89,10 +99,29 @@ export default function EmergencyPage() {
                   ))}
                 </div>
               </section>
+
+              <section className="rounded-3xl border border-ink/10 p-4">
+                <p className="text-sm font-medium text-ink">结构化判断</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-sage/18 px-3 py-1 text-xs font-medium text-ink">
+                    {analysis.canBeConvertedToTraining ? "可转训练" : "暂不转训练"}
+                  </span>
+                  {analysis.matchedCharacterType ? (
+                    <span className="rounded-full bg-berry/10 px-3 py-1 text-xs font-medium text-berry">
+                      匹配角色：{analysis.matchedCharacterType}
+                    </span>
+                  ) : null}
+                  {analysis.fallback ? (
+                    <span className="rounded-full bg-coral/12 px-3 py-1 text-xs font-medium text-coral">
+                      fallback
+                    </span>
+                  ) : null}
+                </div>
+              </section>
             </div>
           ) : (
             <div className="flex min-h-full items-center justify-center rounded-3xl border border-dashed border-ink/15 bg-cream/60 p-8 text-center text-sm leading-7 text-ink/60">
-              这里会显示 mock 分析结果。Stage 1 暂不接入真实 AI，也不提供保存或转训练能力。
+              这里会显示 mock 分析结果。当前阶段不接真实 AI，也不提供保存或转训练能力。
             </div>
           )}
         </div>

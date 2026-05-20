@@ -6,13 +6,35 @@
   color-scheme: light;
 }
 
-body {
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(243, 139, 116, 0.18), transparent 32%),
-    radial-gradient(circle at top right, rgba(127, 53, 89, 0.14), transparent 28%),
-    linear-gradient(180deg, #fff8f2 0%, #fffdf8 48%, #fff6ee 100%);
-  color: #1f2233;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-cream text-ink;
+    background:
+      radial-gradient(circle at top left, rgba(243, 139, 116, 0.18), transparent 32%),
+      radial-gradient(circle at top right, rgba(127, 53, 89, 0.14), transparent 28%),
+      linear-gradient(180deg, #fff8f2 0%, #fffdf8 48%, #fff6ee 100%);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-ink;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
 }
 
 * {

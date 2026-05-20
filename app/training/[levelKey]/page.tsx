@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageShell } from "@/components/shell";
-import { buildTrainingResult, getCharacterByType, getLevelByKey, playMockRound } from "@/lib/training";
+import { buildTrainingResult, getCharacterByType, getLevelByKey, runTrainingRound } from "@/lib/training";
 import { saveTrainingResult } from "@/lib/storage";
 import type { RoundRecord } from "@/types/training";
 
@@ -33,6 +33,8 @@ export default function TrainingPage() {
   const [reply, setReply] = useState("");
   const [rounds, setRounds] = useState<RoundRecord[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [validationRewrite, setValidationRewrite] = useState<string | null>(null);
 
   const initialEmotion = level?.initialEmotionScore ?? -45;
   const initialTrust = level?.initialTrustScore ?? 42;
@@ -49,7 +51,7 @@ export default function TrainingPage() {
       return level.openingLine;
     }
 
-    return rounds.at(-1)?.girlfriendReply ?? level.openingLine;
+    return rounds.at(-1)?.girlfriendReply.girlfriendReply ?? level.openingLine;
   }, [level, rounds]);
 
   if (!level || !character) {
@@ -70,27 +72,36 @@ export default function TrainingPage() {
     }
 
     setSubmitting(true);
+    setValidationMessage(null);
+    setValidationRewrite(null);
 
-    const round = playMockRound({
+    const outcome = await runTrainingRound({
       roundNumber: currentRound,
       userReply: reply,
       emotionBefore: emotionValue,
       trustBefore: trustValue,
       level,
       character,
+      rounds,
     });
 
-    const nextRounds = [...rounds, round];
+    if (outcome.status === "blocked") {
+      setValidationMessage(outcome.validation.userMessageToShow);
+      setValidationRewrite(outcome.validation.suggestedRewrite ?? null);
+      setSubmitting(false);
+      return;
+    }
+
+    const nextRounds = [...rounds, outcome.record];
     setRounds(nextRounds);
     setReply("");
+    setValidationMessage(outcome.record.validation.userMessageToShow);
+    setValidationRewrite(outcome.record.validation.suggestedRewrite ?? null);
 
     if (currentRound === 3) {
-      const result = buildTrainingResult(level.levelKey, nextRounds);
+      const result = await buildTrainingResult(level.levelKey, nextRounds);
       if (result) {
         saveTrainingResult(result);
-        // TODO(Stage 1 mock): `/training/[levelKey]/result` is a temporary result route.
-        // TODO(Stage 7): switch back to `docs/PAGE_FLOW.md` route `/training/[resultId]/result`.
-        // TODO(Stage 7): `resultId` should be `guestSessionId` for guests, then the formal `sessionId` after login-save.
         router.push(`/training/${level.levelKey}/result`);
       }
     }
@@ -102,7 +113,7 @@ export default function TrainingPage() {
     <PageShell
       eyebrow="Training"
       title={`${character.characterName} · ${level.sceneName}`}
-      description="Stage 2 已切换为正式本地角色卡和关卡种子数据，但仍然使用 mock 女友回复和 mock 评分完成三轮训练。"
+      description="当前为 Stage 3：训练流程统一经过输入校验、mock 女友回复、mock 裁判评分和最终复盘。仍然不接真实 AI、不接数据库。"
     >
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <aside className="space-y-5 rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
@@ -160,6 +171,13 @@ export default function TrainingPage() {
             <p className="mt-3 text-lg leading-8">{currentPrompt}</p>
           </div>
 
+          {validationMessage ? (
+            <div className="rounded-3xl border border-coral/30 bg-coral/8 p-4 text-sm leading-7 text-ink/78">
+              <p>{validationMessage}</p>
+              {validationRewrite ? <p className="mt-2 text-ink/62">建议改写：{validationRewrite}</p> : null}
+            </div>
+          ) : null}
+
           {rounds.length > 0 ? (
             <div className="space-y-4">
               <p className="text-sm uppercase tracking-[0.2em] text-coral">已完成轮次</p>
@@ -171,13 +189,16 @@ export default function TrainingPage() {
                     {round.userReply || "（空白回复）"}
                   </p>
                   <p className="mt-2 text-sm leading-7 text-ink/80">
-                    <span className="font-medium text-ink">她的反馈：</span>
-                    {round.girlfriendReply}
+                    <span className="font-medium text-ink">她的回复：</span>
+                    {round.girlfriendReply.girlfriendReply}
                   </p>
-                  <p className="mt-2 text-sm leading-7 text-ink/68">{round.roundFeedback}</p>
-                  {round.riskFlags.length > 0 ? (
+                  <p className="mt-2 text-sm leading-7 text-ink/68">
+                    <span className="font-medium text-ink">本轮反馈：</span>
+                    {round.score.roundFeedback}
+                  </p>
+                  {round.score.riskFlags.length > 0 ? (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {round.riskFlags.map((flag) => (
+                      {round.score.riskFlags.map((flag) => (
                         <span key={flag} className="rounded-full bg-coral/12 px-3 py-1 text-xs font-medium text-coral">
                           {flag}
                         </span>
@@ -204,7 +225,7 @@ export default function TrainingPage() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition hover:bg-berry disabled:cursor-not-allowed disabled:bg-ink/40"
+                className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition hover:bg-berry disabled:bg-ink/40"
               >
                 {currentRound === 3 ? "提交并查看复盘" : "提交这一轮"}
               </button>

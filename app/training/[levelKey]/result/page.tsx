@@ -27,15 +27,12 @@ export default function ResultPage() {
   const [result, setResult] = useState<TrainingResult | null>(null);
 
   useEffect(() => {
-    // TODO(Stage 1 mock): this result page reads by `levelKey` only as a temporary mock implementation.
-    // TODO(Stage 7): switch back to `docs/PAGE_FLOW.md` route `/training/[resultId]/result`.
-    // TODO(Stage 7): `resultId` should be `guestSessionId` for guests, then the formal `sessionId` after login-save.
     setResult(getLatestTrainingResultByLevelKey(params.levelKey));
   }, [params.levelKey]);
 
   if (!result) {
     return (
-      <PageShell eyebrow="Result" title="没有找到这次训练结果" description="Stage 1 结果页依赖浏览器本地的 mock 结果缓存。你可以重新走一遍训练流程来生成结果。">
+      <PageShell eyebrow="Result" title="没有找到这次训练结果" description="当前结果页仍沿用 Stage 1/2/3 的临时本地缓存方案。你可以重新完成一次三轮训练来生成结果。">
         <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
           <Link href="/characters" className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white">
             返回角色选择
@@ -51,7 +48,7 @@ export default function ResultPage() {
     <PageShell
       eyebrow="Final Review"
       title={`${result.characterName} · ${result.levelName} 复盘`}
-      description="这里展示的是 Stage 1 mock 结果结构，方便后续替换成真实 AI 输出和数据库记录。当前页不会触发登录保存。"
+      description="当前为 Stage 3：这里展示的是 mock AI provider 生成并经过 Schema 校验的最终复盘。结果页路由仍保持当前临时方案。"
     >
       <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <aside className="space-y-5 rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
@@ -79,11 +76,11 @@ export default function ResultPage() {
                 继续下一关
               </Link>
             ) : null}
-            <Link href="/characters" className="rounded-full border border-ink/15 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30">
+            <Link href="/characters" className="rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white">
               换个角色继续
             </Link>
-            <Link href="/history" className="rounded-full border border-ink/15 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30">
-              查看历史页占位
+            <Link href="/history" className="rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white">
+              查看历史占位页
             </Link>
           </div>
         </aside>
@@ -130,9 +127,9 @@ export default function ResultPage() {
                 </p>
                 <p className="mt-2 text-sm leading-7 text-ink/80">
                   <span className="font-medium text-ink">她的反馈：</span>
-                  {round.girlfriendReply}
+                  {round.girlfriendReply.girlfriendReply}
                 </p>
-                <p className="mt-2 text-sm leading-7 text-ink/68">{round.roundFeedback}</p>
+                <p className="mt-2 text-sm leading-7 text-ink/68">{round.score.roundFeedback}</p>
               </article>
             ))}
           </section>

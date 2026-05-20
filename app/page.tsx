@@ -7,9 +7,9 @@ export default function HomePage() {
 
   return (
     <PageShell
-      eyebrow="Stage 2 Local Data"
+      eyebrow="Stage 3 Mock AI Provider"
       title="不是教你骗她原谅，而是教你真正听懂她。"
-      description="这一版继续保持 Stage 1 的 mock 三轮训练闭环，但角色和关卡内容已经升级为正式的本地配置数据。"
+      description="当前阶段已完成 Stage 3：训练流程和救急分析都由统一 mock AI provider 驱动，并经过 Schema 校验。仍然不接真实 AI、不接数据库、不接 BetterAuth。"
     >
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
@@ -24,7 +24,7 @@ export default function HomePage() {
               <Link href="/characters" className="rounded-full bg-ink px-5 py-3 text-center text-sm font-medium text-white transition hover:bg-berry">
                 开始模拟训练
               </Link>
-              <Link href="/emergency" className="rounded-full border border-ink/15 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30">
+              <Link href="/emergency" className="rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white">
                 先用救急模式
               </Link>
             </div>
@@ -33,11 +33,11 @@ export default function HomePage() {
 
         <div className="rounded-4xl border border-berry/10 bg-berry p-6 text-white shadow-card">
           <div className="space-y-3">
-            <p className="text-sm uppercase tracking-[0.2em] text-white/70">产品红线</p>
+            <p className="text-sm uppercase tracking-[0.2em] text-white/70">Stage 3 说明</p>
             <ul className="space-y-3 text-sm leading-7 text-white/88">
-              <li>不教操控、欺骗、冷暴力或套路话术。</li>
-              <li>不承诺百分百哄好，只训练理解、回应、承担与修复。</li>
-              <li>救急页默认不保存真实聊天内容，当前阶段也不会接入保存能力。</li>
+              <li>当前仍使用 mock AI provider，不接真实模型。</li>
+              <li>当前仍不接数据库、不接 BetterAuth，也不保存救急真实聊天。</li>
+              <li>所有训练和救急结果都走结构化 Schema 校验与 fallback。</li>
             </ul>
           </div>
         </div>
@@ -49,7 +49,7 @@ export default function HomePage() {
             <p className="text-sm uppercase tracking-[0.2em] text-berry/80">角色入口</p>
             <h2 className="mt-2 text-2xl font-semibold text-ink">先选一种沟通难题开始练</h2>
           </div>
-          <Link href="/characters" className="hidden rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink hover:border-ink/30 sm:inline-flex">
+          <Link href="/characters" className="hidden rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white sm:inline-flex">
             查看全部角色
           </Link>
         </div>

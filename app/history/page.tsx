@@ -5,8 +5,8 @@ export default function HistoryPage() {
   return (
     <PageShell
       eyebrow="History"
-      title="历史记录页占位"
-      description="按照 Stage 1 要求，这里先只做占位，不接 BetterAuth、不接数据库，也不展示真实训练历史。"
+      title="历史记录占位页"
+      description="当前阶段仍只保留占位。Stage 3 不接 BetterAuth、不接数据库，所以这里暂不展示正式历史记录。"
     >
       <section className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
         <div className="space-y-4">
@@ -18,7 +18,7 @@ export default function HistoryPage() {
             <Link href="/characters" className="rounded-full bg-ink px-5 py-3 text-center text-sm font-medium text-white transition hover:bg-berry">
               回到训练入口
             </Link>
-            <Link href="/" className="rounded-full border border-ink/15 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30">
+            <Link href="/" className="rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white">
               返回首页
             </Link>
           </div>

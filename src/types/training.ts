@@ -1,33 +1,26 @@
+import type {
+  EmergencyAnalysisResult,
+  FinalReviewResult,
+  GirlfriendReplyResult,
+  InputValidationResult,
+  RoundScoreResult,
+} from "@/ai/schemas";
 import type { CharacterType } from "@/types/character";
 
 export type RoundRecord = {
   roundNumber: number;
   userReply: string;
-  girlfriendReply: string;
+  validation: InputValidationResult;
+  girlfriendReply: GirlfriendReplyResult;
+  score: RoundScoreResult;
   emotionBefore: number;
   emotionAfter: number;
   trustBefore: number;
   trustAfter: number;
-  roundFeedback: string;
-  riskFlags: string[];
-  scoreDelta: number;
 };
 
-export type FinalReview = {
-  totalScore: number;
-  grade: string;
-  endingType: string;
-  summary: string;
-  keyProblems: string[];
-  betterReply: string;
-  lesson: string;
-  emotionRecognition: number;
-  empathy: number;
-  responsibility: number;
-  explanationControl: number;
-  actionClarity: number;
-  relationshipRepair: number;
-};
+export type FinalReview = FinalReviewResult;
+export type EmergencyAnalysis = EmergencyAnalysisResult;
 
 export type TrainingResult = {
   id: string;
@@ -45,11 +38,15 @@ export type TrainingResult = {
   finalReview: FinalReview;
 };
 
-export type EmergencyAnalysis = {
-  emotion: string;
-  hiddenNeed: string;
-  riskWarnings: string[];
-  replyStrategy: string;
-  suggestedReply: string;
-  doNotSay: string[];
+export type TrainingRoundBlocked = {
+  status: "blocked";
+  validation: InputValidationResult;
 };
+
+export type TrainingRoundCompleted = {
+  status: "completed";
+  record: RoundRecord;
+  finalReview?: FinalReview;
+};
+
+export type TrainingRoundOutcome = TrainingRoundBlocked | TrainingRoundCompleted;

@@ -9,7 +9,7 @@ export default function CharactersPage() {
     <PageShell
       eyebrow="Characters"
       title="角色选择"
-      description="每个角色代表一种典型沟通难题。Stage 2 已改为读取正式本地角色配置，让你可以从这里开始跑完整个训练流程。"
+      description="每个角色代表一种典型沟通难题。当前为 Stage 3：角色与关卡数据来自本地配置，训练流程由 mock AI provider 驱动。"
     >
       <section className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
         {characters.map((character) => (
@@ -23,7 +23,7 @@ export default function CharactersPage() {
               <dl className="space-y-3 text-sm leading-7 text-ink/72">
                 <div>
                   <dt className="font-medium text-ink">性格关键词</dt>
-                  <dd>{character.personalityKeywords.join("、")}</dd>
+                  <dd>{character.personalityKeywords.join(" · ")}</dd>
                 </div>
                 <div>
                   <dt className="font-medium text-ink">安抚机制</dt>
@@ -31,7 +31,7 @@ export default function CharactersPage() {
                 </div>
                 <div>
                   <dt className="font-medium text-ink">高危雷区</dt>
-                  <dd>{character.dangerZones.join("、")}</dd>
+                  <dd>{character.dangerZones.join(" · ")}</dd>
                 </div>
               </dl>
               <Link
