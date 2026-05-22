@@ -11,6 +11,7 @@ import { levelSeeds } from "@/data/levels";
 import type { CharacterConfig, CharacterType } from "@/types/character";
 import type { LevelSeed } from "@/types/level";
 import type { EmergencyAnalysis, FinalReview, RoundRecord, TrainingResult, TrainingRoundOutcome } from "@/types/training";
+import type { SaveTrainingSessionPayload } from "@/schemas/training-session";
 
 export function getCharacters(): CharacterConfig[] {
   return characters;
@@ -185,6 +186,71 @@ export async function buildTrainingResult(levelKey: string, rounds: RoundRecord[
     rounds,
     finalReview,
   };
+}
+
+function toSaveTrainingSessionPayload(result: TrainingResult): SaveTrainingSessionPayload {
+  return {
+    resultId: result.id,
+    levelKey: result.levelKey,
+    rounds: result.rounds.map((round) => ({
+      roundNumber: round.roundNumber,
+      userReply: round.userReply,
+      validation: {
+        status: round.validation.status,
+      },
+      girlfriendReply: {
+        girlfriendReply: round.girlfriendReply.girlfriendReply,
+        fallback: round.girlfriendReply.fallback,
+        errorType: round.girlfriendReply.errorType,
+      },
+      score: {
+        emotionChange: round.score.emotionChange,
+        trustChange: round.score.trustChange,
+        riskFlags: round.score.riskFlags,
+        skillScores: round.score.skillScores,
+        roundFeedback: round.score.roundFeedback,
+        fallback: round.score.fallback,
+        errorType: round.score.errorType,
+      },
+      emotionBefore: round.emotionBefore,
+      emotionAfter: round.emotionAfter,
+      trustBefore: round.trustBefore,
+      trustAfter: round.trustAfter,
+    })),
+    finalReview: {
+      totalScore: result.finalReview.totalScore,
+      grade: result.finalReview.grade,
+      endingType: result.finalReview.endingType,
+      emotionRecognition: result.finalReview.emotionRecognition,
+      empathy: result.finalReview.empathy,
+      responsibility: result.finalReview.responsibility,
+      explanationControl: result.finalReview.explanationControl,
+      actionClarity: result.finalReview.actionClarity,
+      relationshipRepair: result.finalReview.relationshipRepair,
+      summary: result.finalReview.summary,
+      keyProblems: result.finalReview.keyProblems,
+      betterReply: result.finalReview.betterReply,
+      lesson: result.finalReview.lesson,
+      fallback: result.finalReview.fallback,
+      errorType: result.finalReview.errorType,
+    },
+  };
+}
+
+export async function saveTrainingSessionResult(result: TrainingResult) {
+  const response = await fetch("/api/training-sessions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(toSaveTrainingSessionPayload(result)),
+  });
+
+  if (!response.ok) {
+    throw new Error("SAVE_TRAINING_SESSION_FAILED");
+  }
+
+  return (await response.json()) as { status: "created" | "completed"; sessionId: string };
 }
 
 export async function analyzeEmergencyMessage(message: string): Promise<EmergencyAnalysis> {

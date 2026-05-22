@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageShell } from "@/components/shell";
-import { buildTrainingResult, getCharacterByType, getLevelByKey, runTrainingRound } from "@/lib/training";
+import { authClient } from "@/lib/auth-client";
+import { buildTrainingResult, getCharacterByType, getLevelByKey, runTrainingRound, saveTrainingSessionResult } from "@/lib/training";
 import { saveTrainingResult } from "@/lib/storage";
 import type { RoundRecord } from "@/types/training";
 
@@ -39,6 +40,7 @@ function getStageMessage(stage: "validate" | "girlfriend-reply" | "score-round")
 export default function TrainingPage() {
   const params = useParams<{ levelKey: string }>();
   const router = useRouter();
+  const { data: session } = authClient.useSession();
   const level = getLevelByKey(params.levelKey);
   const character = level ? getCharacterByType(level.characterType) : null;
   const submitLockRef = useRef(false);
@@ -146,6 +148,13 @@ export default function TrainingPage() {
             setFallbackNotice("本次分析不太稳定，已为你生成基础建议。");
           }
           saveTrainingResult(result);
+          if (session?.user?.id) {
+            try {
+              await saveTrainingSessionResult(result);
+            } catch (error) {
+              console.error("[training-save]", error);
+            }
+          }
           router.push(`/training/${level.levelKey}/result`);
         }
       }

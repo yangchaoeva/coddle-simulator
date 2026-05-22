@@ -35,7 +35,7 @@ export default function ResultPage() {
       <PageShell
         eyebrow="Result"
         title="没有找到这次训练结果"
-        description="当前结果页仍沿用临时本地缓存方案。你可以重新完成一次三轮训练来生成结果。"
+        description="当前结果页仍沿用本地结果读取方案。你可以重新完成一次三轮训练来生成结果。"
       >
         <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
           <Link href="/characters" className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white">
@@ -52,7 +52,7 @@ export default function ResultPage() {
     <PageShell
       eyebrow="Final Review"
       title={`${result.characterName} · ${result.levelName} 复盘`}
-      description="当前已接入真实 AI，训练回复、评分和复盘会经过 Schema 校验与 fallback。当前仍不接数据库、不接 BetterAuth，不保存训练记录。"
+      description="当前已接入真实 AI，训练回复、评分和复盘会经过 Schema 校验与 fallback。未登录用户仍只在本地展示结果；已登录用户会在服务端保存训练记录，并可在 history 查看。"
     >
       <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <aside className="space-y-5 rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
@@ -84,7 +84,7 @@ export default function ResultPage() {
               换个角色继续
             </Link>
             <Link href="/history" className="rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white">
-              查看历史占位页
+              查看历史
             </Link>
           </div>
         </aside>
