@@ -137,3 +137,65 @@ MVP 只做单人训练闭环：
 JSON.parse(aiResponse)
 ```
 
+***
+
+## 9. Current Stage Status (2026-05-23)
+
+已完成：
+
+* Stage 1：页面骨架 + Mock 流程
+* Stage 2：角色卡 + 15 个关卡
+* Stage 3：AI Schema + Mock Provider
+* Stage 4：真实 AI Provider
+* Stage 4.5：AI 响应速度与 loading 优化
+* Stage 5：Neon + Drizzle 数据库基础层
+* Stage 6A：BetterAuth + Google 登录
+* Stage 6B：登录用户训练保存 + history
+
+未完成：
+
+* Stage 7：游客训练结果登录后合并
+* Stage 8：救急模式保存
+
+## 10. Current Capability Boundary
+
+当前系统已经支持：
+
+* 三轮训练闭环
+* Step 1 女友回复 Agent
+* Step 2 裁判评分 Agent
+* 最终复盘
+* Google 登录
+* 登录用户训练结果写入 `training_sessions`、`dialogue_turns`、`score_results`
+* `/history` 按当前登录用户读取训练历史
+
+当前系统仍然不支持：
+
+* 游客训练结果登录后自动合并
+* 救急模式保存到数据库
+* `user_progress` 统计更新
+* 社区、排行榜、多人互动、会员、支付
+
+## 11. Hard Rules
+
+当前必须继续遵守：
+
+* 前端不能传 `userId`
+* `userId` 必须只来自 BetterAuth `session.user.id`
+* `/history` 必须只按当前 session 查询
+* `.env.local` 不得提交
+* 不得提前做游客合并
+* `emergency_analyses` 的正式保存留到 Stage 8
+* 未登录用户训练结果仍只本地展示，不写数据库
+
+## 12. Next Stage Gate
+
+下一阶段建议是 Stage 7：游客训练结果登录后合并。
+
+进入 Stage 7 前必须先做设计评审，至少明确：
+
+1. `localStorage` 数据结构
+2. 合并触发时机
+3. 幂等策略
+4. 游客结果与正式 `sessionId` 的映射方式
+5. 合并失败后的回滚与重试策略
