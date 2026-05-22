@@ -13,7 +13,9 @@
     "db:seed:levels": "tsx src/db/seeds/levels.ts"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.6.11",
     "@neondatabase/serverless": "^1.1.0",
+    "better-auth": "^1.6.11",
     "drizzle-orm": "^0.45.2",
     "next": "15.3.2",
     "react": "19.0.0",
