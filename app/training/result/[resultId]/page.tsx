@@ -23,12 +23,13 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
   );
 }
 
+type SaveUiState = "idle" | "saving" | "save_failed";
+
 export default function ResultPage() {
   const params = useParams<{ resultId: string }>();
   const { data: session, isPending } = authClient.useSession();
   const [result, setResult] = useState<TrainingResult | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveUiState, setSaveUiState] = useState<SaveUiState>("idle");
 
   useEffect(() => {
     setResult(getTrainingResultById(params.resultId));
@@ -41,12 +42,11 @@ export default function ResultPage() {
   );
 
   const handleSaveToAccount = async () => {
-    if (!result || saving || synced) {
+    if (!result || saveUiState === "saving" || synced) {
       return;
     }
 
-    setSaving(true);
-    setSaveError(null);
+    setSaveUiState("saving");
 
     try {
       const response = await saveTrainingSessionResult(result);
@@ -54,10 +54,9 @@ export default function ResultPage() {
       if (nextResult) {
         setResult(nextResult);
       }
+      setSaveUiState("idle");
     } catch {
-      setSaveError("保存失败。请稍后重试，或先确认当前登录状态是否有效。");
-    } finally {
-      setSaving(false);
+      setSaveUiState("save_failed");
     }
   };
 
@@ -112,6 +111,7 @@ export default function ResultPage() {
             ) : !session?.user ? (
               <div className="space-y-3">
                 <p className="text-sm leading-7 text-ink/68">登录后可将这一条训练结果保存到你的账号。</p>
+                <p className="text-sm leading-7 text-ink/60">建议从本页入口登录，登录后会回到本页继续保存这次训练。</p>
                 <Link href={loginHref} className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition hover:bg-berry">
                   登录后可保存到账号
                 </Link>
@@ -123,17 +123,25 @@ export default function ResultPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm leading-7 text-ink/68">当前已登录，可以把这一条训练结果保存到你的账号。</p>
-                {saveError ? (
-                  <div className="rounded-3xl border border-coral/30 bg-coral/8 p-4 text-sm leading-7 text-ink/78">{saveError}</div>
+                <p className="text-sm leading-7 text-ink/68">
+                  {saveUiState === "saving"
+                    ? "正在保存这条训练结果到你的账号。"
+                    : saveUiState === "save_failed"
+                      ? "保存失败，可直接重试。失败不会把本地结果标记为已同步。"
+                      : "当前已登录，可以把这一条训练结果保存到你的账号。"}
+                </p>
+                {saveUiState === "save_failed" ? (
+                  <div className="rounded-3xl border border-coral/30 bg-coral/8 p-4 text-sm leading-7 text-ink/78">
+                    保存失败。请稍后重试，或先确认当前登录状态是否有效。
+                  </div>
                 ) : null}
                 <button
                   type="button"
                   onClick={handleSaveToAccount}
-                  disabled={saving}
+                  disabled={saveUiState === "saving"}
                   className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition hover:bg-berry disabled:bg-ink/40"
                 >
-                  {saving ? "正在保存..." : "保存到我的账号"}
+                  {saveUiState === "saving" ? "正在保存" : saveUiState === "save_failed" ? "重试保存到我的账号" : "保存到我的账号"}
                 </button>
               </div>
             )}
