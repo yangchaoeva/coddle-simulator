@@ -2,143 +2,51 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { PageShell } from "@/components/shell";
 import { getLatestTrainingResultByLevelKey } from "@/lib/storage";
-import { getLevelsByCharacter } from "@/lib/training";
-import type { TrainingResult } from "@/types/training";
 
-function ScoreBar({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-sm text-ink/72">
-        <span>{label}</span>
-        <span className="font-medium text-ink">{value}</span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-ink/10">
-        <div className="h-full rounded-full bg-coral" style={{ width: `${value}%` }} />
-      </div>
-    </div>
-  );
-}
-
-export default function ResultPage() {
+export default function LegacyResultPage() {
   const params = useParams<{ levelKey: string }>();
-  const [result, setResult] = useState<TrainingResult | null>(null);
+  const router = useRouter();
+  const [missingResult, setMissingResult] = useState(false);
 
   useEffect(() => {
-    setResult(getLatestTrainingResultByLevelKey(params.levelKey));
-  }, [params.levelKey]);
+    const result = getLatestTrainingResultByLevelKey(params.levelKey);
 
-  if (!result) {
+    if (result) {
+      router.replace(`/training/result/${result.id}`);
+      return;
+    }
+
+    setMissingResult(true);
+  }, [params.levelKey, router]);
+
+  if (!missingResult) {
     return (
       <PageShell
         eyebrow="Result"
-        title="没有找到这次训练结果"
-        description="当前结果页仍沿用本地结果读取方案。你可以重新完成一次三轮训练来生成结果。"
+        title="正在跳转结果页"
+        description="旧结果页地址会自动跳转到按 resultId 精确定位的新结果页。"
       >
-        <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
-          <Link href="/characters" className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white">
-            返回角色选择
-          </Link>
+        <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card text-sm leading-7 text-ink/72">
+          正在查找这次训练结果...
         </div>
       </PageShell>
     );
   }
 
-  const nextLevel = getLevelsByCharacter(result.characterType).find((item) => item.levelKey !== result.levelKey);
-
   return (
     <PageShell
-      eyebrow="Final Review"
-      title={`${result.characterName} · ${result.levelName} 复盘`}
-      description="当前已接入真实 AI，训练回复、评分和复盘会经过 Schema 校验与 fallback。未登录用户仍只在本地展示结果；已登录用户会在服务端保存训练记录，并可在 history 查看。"
+      eyebrow="Result"
+      title="没有找到结果"
+      description="旧结果页地址没有匹配到本地训练记录，请重新完成一次训练。"
     >
-      <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <aside className="space-y-5 rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
-          <div className="space-y-2">
-            <p className="text-sm uppercase tracking-[0.2em] text-coral">最终结果</p>
-            <h2 className="text-5xl font-semibold text-ink">{result.finalReview.totalScore}</h2>
-            <p className="text-lg font-medium text-berry">
-              {result.finalReview.grade} · {result.finalReview.endingType}
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-cream p-4 text-sm leading-7 text-ink/72">
-            <p className="font-medium text-ink">结论</p>
-            <p>{result.finalReview.summary}</p>
-          </div>
-
-          <div className="space-y-4 rounded-3xl border border-ink/10 p-4">
-            <ScoreBar label="情绪值变化" value={Math.round(((result.emotionEnd + 100) / 200) * 100)} />
-            <ScoreBar label="信任值变化" value={result.trustEnd} />
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {nextLevel ? (
-              <Link href={`/training/${nextLevel.levelKey}`} className="rounded-full bg-ink px-5 py-3 text-center text-sm font-medium text-white transition hover:bg-berry">
-                继续下一关
-              </Link>
-            ) : null}
-            <Link href="/characters" className="rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white">
-              换个角色继续
-            </Link>
-            <Link href="/history" className="rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white">
-              查看历史
-            </Link>
-          </div>
-        </aside>
-
-        <div className="space-y-5 rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
-          <section className="grid gap-4 md:grid-cols-2">
-            <ScoreBar label="情绪识别" value={result.finalReview.emotionRecognition} />
-            <ScoreBar label="共情表达" value={result.finalReview.empathy} />
-            <ScoreBar label="责任承担" value={result.finalReview.responsibility} />
-            <ScoreBar label="解释克制" value={result.finalReview.explanationControl} />
-            <ScoreBar label="行动清晰" value={result.finalReview.actionClarity} />
-            <ScoreBar label="关系修复" value={result.finalReview.relationshipRepair} />
-          </section>
-
-          <section className="space-y-3 rounded-3xl border border-ink/10 p-4">
-            <p className="text-sm font-medium text-ink">本次关键提醒</p>
-            <div className="flex flex-wrap gap-2">
-              {result.finalReview.keyProblems.map((item) => (
-                <span key={item} className="rounded-full bg-coral/12 px-3 py-1 text-xs font-medium text-coral">
-                  {item}
-                </span>
-              ))}
-            </div>
-          </section>
-
-          <section className="space-y-3 rounded-3xl bg-cream p-4">
-            <p className="text-sm font-medium text-ink">更优表达示例</p>
-            <p className="text-sm leading-7 text-ink/80">{result.finalReview.betterReply}</p>
-          </section>
-
-          <section className="space-y-3 rounded-3xl border border-ink/10 p-4">
-            <p className="text-sm font-medium text-ink">沟通原则</p>
-            <p className="text-sm leading-7 text-ink/75">{result.finalReview.lesson}</p>
-          </section>
-
-          <section className="space-y-3">
-            <p className="text-sm uppercase tracking-[0.2em] text-coral">三轮记录</p>
-            {result.rounds.map((round) => (
-              <article key={round.roundNumber} className="rounded-3xl border border-ink/10 p-4">
-                <p className="text-sm font-medium text-ink">第 {round.roundNumber} 轮</p>
-                <p className="mt-2 text-sm leading-7 text-ink/80">
-                  <span className="font-medium text-ink">你的回复：</span>
-                  {round.userReply || "（空白回复）"}
-                </p>
-                <p className="mt-2 text-sm leading-7 text-ink/80">
-                  <span className="font-medium text-ink">她的回复：</span>
-                  {round.girlfriendReply.girlfriendReply}
-                </p>
-                <p className="mt-2 text-sm leading-7 text-ink/68">{round.score.roundFeedback}</p>
-              </article>
-            ))}
-          </section>
-        </div>
-      </section>
+      <div className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
+        <Link href="/characters" className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white">
+          返回训练入口
+        </Link>
+      </div>
     </PageShell>
   );
 }

@@ -155,7 +155,7 @@ export default function TrainingPage() {
               console.error("[training-save]", error);
             }
           }
-          router.push(`/training/${level.levelKey}/result`);
+          router.push(`/training/result/${result.id}`);
         }
       }
     } finally {

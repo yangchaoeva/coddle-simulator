@@ -38,8 +38,7 @@ export function getTrainingResultById(resultId: string) {
 }
 
 export function getLatestTrainingResultByLevelKey(levelKey: string) {
-  // TODO(Stage 1 mock): keep this helper only for the temporary `/training/[levelKey]/result` flow.
-  // TODO(Stage 7): result lookup should move back to `/training/[resultId]/result`,
-  // where `resultId` is `guestSessionId` before login-save and formal `sessionId` after merge.
+  // Compatibility helper for the legacy `/training/[levelKey]/result` route.
+  // The primary result route is `/training/result/[resultId]`.
   return getAllTrainingResults().find((item) => item.levelKey === levelKey) ?? null;
 }
