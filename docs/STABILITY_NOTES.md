@@ -13,7 +13,17 @@
 * Stage 6A：BetterAuth + Google 登录
 * Stage 6B：登录用户训练保存 + history
 
-## 2. Stable Delivery Pattern
+## 2. 当前文档体系分工
+
+当前文档分工如下：
+
+* `ARCHITECTURE.md`：架构决策记录
+* `AGENTS.md`：执行规则
+* `SKILLS.md`：方法库
+* `DEBUG.md`：排错手册
+* `STABILITY_NOTES.md`：当前系统状态
+
+## 3. Stable Delivery Pattern
 
 当前验证有效的交付模式：
 
@@ -31,7 +41,7 @@
 
 大任务必须先计划，不得直接写代码。
 
-## 3. AI Stability
+## 4. AI Stability
 
 已经验证有效的 AI 接入顺序：
 
@@ -48,7 +58,7 @@
 * AI action 要记录耗时
 * 不要把 AI 接入和业务链路问题混在一起排查
 
-## 4. Auth and Data Safety
+## 5. Auth and Data Safety
 
 必须持续遵守：
 
@@ -58,7 +68,7 @@
 * 未登录用户不写正式用户表
 * 游客合并留到 Stage 7
 
-## 5. Database Safety
+## 6. Database Safety
 
 固定流程：
 
@@ -70,7 +80,7 @@
 * migration 中出现 `DROP` / `DELETE` / `TRUNCATE` 必须停下来
 * Neon 项目必须通过 `DATABASE_URL` host 判断，不能靠项目名
 
-## 6. OAuth Stability
+## 7. OAuth Stability
 
 Google OAuth 排查顺序：
 
@@ -85,7 +95,7 @@ Google OAuth 排查顺序：
 * 本次真实根因是 Node / Next 服务端到 `oauth2.googleapis.com:443` 不通
 * 需要检查代理 / VPN / `HTTPS_PROXY` / `HTTP_PROXY`
 
-## 7. Current Non-Goals
+## 8. Current Non-Goals
 
 当前仍未做：
 

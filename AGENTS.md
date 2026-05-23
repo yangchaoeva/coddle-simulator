@@ -202,29 +202,43 @@ JSON.parse(aiResponse)
 
 ***
 
-## 13. Additional Hard Rules (Docs / Stability Review)
+## 13. Additional Hard Rules
 
-����������أ�
+必须继续遵守：
 
-1. ǰ�˲��ô� `userId`��
-2. ��ʽд��� `userId` �������� BetterAuth `session.user.id`��
-3. `.env.local`��`DATABASE_URL`��`GOOGLE_CLIENT_SECRET`��`BETTER_AUTH_SECRET`��`ARK_API_KEY` ���ö�ȡ��������ύ��
-4. ������ǰ���οͺϲ���
-5. ������ǰ�� `emergency_analyses` ���档
-6. ���ݿ����̱������أ�
-   `schema -> db:generate -> ��� migration -> db:migrate -> seed`
-7. `db:migrate`��`db:push`��`db:seed` ������û�ȷ�Ϻ����ִ�С�
-8. OAuth ���Բ���äĿ�ع��������Ȱ���·��λ��
+1. 前端不得传 `userId`。
+2. 正式写库的 `userId` 必须来自 BetterAuth `session.user.id`。
+3. `.env.local`、`DATABASE_URL`、`GOOGLE_CLIENT_SECRET`、`BETTER_AUTH_SECRET`、`ARK_API_KEY` 不得读取、输出或提交。
+4. 不得提前做游客合并。
+5. 不得提前做 `emergency_analyses` 保存。
+6. 数据库流程必须遵守：
+   `schema -> db:generate -> 检查 migration -> db:migrate -> seed`
+7. `db:migrate`、`db:push`、`db:seed` 必须等用户确认后才能执行。
+8. OAuth 调试不能盲目重构，必须先按链路定位。
 
 ***
 
-## 14. Skill Summary
+## 14. 越界汇报机制
 
-��ǰ��Ŀ�Ѿ���������¿ɸ��� Skill��
+如果实现目标需要做计划外修改，必须停下来汇报，不能自行扩大实现范围。
 
-1. �׶�ʽ AI ����������ȼƻ�����ִ�С�����顢�����ա����ύ��
-2. Codex ִ�н����飺����ļ���Χ��Խ�硢secret��Σ�����tsc/build���˹����ա�
-3. ���ݿ�Ǩ�ư�ȫ���ϸ����� `schema -> db:generate -> ��� migration -> db:migrate -> seed`��
-4. OAuth / Google ��¼���ԣ��Ȳ� Google Console���ٲ� callback �������ٲ��ն���ʵ����� Node ����������
-5. ��֤���û����ݰ�ȫ��ǰ�˲��ô� `userId`����ʽ�û�д��������� BetterAuth `session.user.id`��
-6. AI Provider �ȶ����룺�� Schema���� Mock���� Real Provider���ұ��뱣�� fallback��
+汇报时必须明确：
+
+1. 需要做什么。
+2. 为什么需要。
+3. 会影响哪些文件或命令。
+4. 风险是什么。
+5. 等待用户确认后再继续。
+
+***
+
+## 15. Skill Summary
+
+当前项目已经沉淀出以下可复用方法：
+
+1. 阶段式 AI 开发管理：先计划、再执行、再审查、再验收、再提交。
+2. Codex 执行结果审查：检查文件范围、越界、secret、危险命令、tsc/build、人工验收。
+3. 数据库迁移安全：严格遵守 `schema -> db:generate -> 检查 migration -> db:migrate -> seed`。
+4. OAuth / Google 登录调试：先查 Google Console，再查 callback 参数，再查终端真实错误和 Node 出网能力。
+5. 认证与用户数据安全：前端不得传 `userId`，正式用户写库必须依赖 BetterAuth `session.user.id`。
+6. AI Provider 稳定接入：先 Schema，再 Mock，再 Real Provider，且必须保留 fallback。
