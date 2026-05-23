@@ -12,7 +12,7 @@
 
 ## 1. Scope
 
-本文档整理 Stage 4 到 Stage 6 的关键调错经验，并沉淀成可复用排查套路。
+本文档整理 Stage 4 到 Stage 7 的关键调错经验，并沉淀成可复用排查套路。
 
 ## 2. OAuth / Google 登录调试
 
@@ -108,3 +108,18 @@
 * 用户可见内容必须中文
 * AI action 要记录耗时
 * 不要把真实 AI 接入和业务链路问题混在一起
+
+## 6. 游客保存调试 Checklist
+
+排查游客结果手动保存时，至少检查：
+
+1. 当前是否在 `/training/result/[resultId]`
+2. `resultId` 是否存在于 localStorage
+3. 是否从结果页入口登录并带 `callbackUrl`
+4. 登录后是否回到同一 `resultId` 页面
+5. 保存是否调用 `POST /api/training-sessions`
+6. `/history` 是否能看到保存结果
+7. Neon 中是否新增：
+   * 1 条 `training_sessions`
+   * 3 条 `dialogue_turns`
+   * 1 条 `score_results`

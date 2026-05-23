@@ -242,3 +242,13 @@ JSON.parse(aiResponse)
 4. OAuth / Google 登录调试：先查 Google Console，再查 callback 参数，再查终端真实错误和 Node 出网能力。
 5. 认证与用户数据安全：前端不得传 `userId`，正式用户写库必须依赖 BetterAuth `session.user.id`。
 6. AI Provider 稳定接入：先 Schema，再 Mock，再 Real Provider，且必须保留 fallback。
+***
+
+## 16. Stage 7 Hard Rules
+
+进入 Stage 7 后必须继续遵守：
+
+* 不得把 `/training/[levelKey]/result` 作为正式结果展示页继续扩展
+* 正式结果页必须使用 `/training/result/[resultId]`
+* 游客结果合并不得自动批量执行
+* 游客结果保存仍不得让前端传 `userId`

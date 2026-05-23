@@ -11,6 +11,7 @@ import { levelSeeds } from "@/data/levels";
 import type { CharacterConfig, CharacterType } from "@/types/character";
 import type { LevelSeed } from "@/types/level";
 import type { EmergencyAnalysis, FinalReview, RoundRecord, TrainingResult, TrainingRoundOutcome } from "@/types/training";
+import type { SaveEmergencyAnalysisPayload } from "@/schemas/emergency-analysis";
 import type { SaveTrainingSessionPayload } from "@/schemas/training-session";
 
 export function getCharacters(): CharacterConfig[] {
@@ -251,6 +252,40 @@ export async function saveTrainingSessionResult(result: TrainingResult) {
   }
 
   return (await response.json()) as { status: "created" | "completed"; sessionId: string };
+}
+
+function toSaveEmergencyAnalysisPayload(message: string, analysis: EmergencyAnalysis): SaveEmergencyAnalysisPayload {
+  return {
+    userInput: message,
+    analysis: {
+      detectedEmotion: analysis.detectedEmotion,
+      hiddenNeed: analysis.hiddenNeed,
+      riskWarnings: analysis.riskWarnings,
+      replyStrategy: analysis.replyStrategy,
+      suggestedReply: analysis.suggestedReply,
+      doNotSay: analysis.doNotSay,
+      canBeConvertedToTraining: analysis.canBeConvertedToTraining,
+      matchedCharacterType: analysis.matchedCharacterType,
+      fallback: analysis.fallback,
+      errorType: analysis.errorType,
+    },
+  };
+}
+
+export async function saveEmergencyAnalysisResult(message: string, analysis: EmergencyAnalysis) {
+  const response = await fetch("/api/emergency-analyses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(toSaveEmergencyAnalysisPayload(message, analysis)),
+  });
+
+  if (!response.ok) {
+    throw new Error("SAVE_EMERGENCY_ANALYSIS_FAILED");
+  }
+
+  return (await response.json()) as { status: "created"; analysisId: string };
 }
 
 export async function analyzeEmergencyMessage(message: string): Promise<EmergencyAnalysis> {

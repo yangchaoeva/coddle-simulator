@@ -3,17 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/shell";
-import { analyzeEmergencyMessage } from "@/lib/training";
+import { authClient } from "@/lib/auth-client";
+import { analyzeEmergencyMessage, saveEmergencyAnalysisResult } from "@/lib/training";
 import type { EmergencyAnalysis } from "@/types/training";
+
+type SaveUiState = "idle" | "saving" | "saved" | "save_failed";
 
 export default function EmergencyPage() {
   const requestLockRef = useRef(false);
+  const { data: session, isPending } = authClient.useSession();
   const [message, setMessage] = useState("");
   const [analysis, setAnalysis] = useState<EmergencyAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const [slowHintVisible, setSlowHintVisible] = useState(false);
   const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
+  const [saveUiState, setSaveUiState] = useState<SaveUiState>("idle");
 
   useEffect(() => {
     if (!loading) {
@@ -38,10 +43,12 @@ export default function EmergencyPage() {
     setLoadingMessage("正在分析她的情绪和潜台词...");
     setSlowHintVisible(false);
     setFallbackNotice(null);
+    setSaveUiState("idle");
 
     try {
       const nextAnalysis = await analyzeEmergencyMessage(message);
       setAnalysis(nextAnalysis);
+
       if (nextAnalysis.fallback) {
         setFallbackNotice("本次分析不太稳定，已为你生成基础建议。");
       }
@@ -49,6 +56,21 @@ export default function EmergencyPage() {
       requestLockRef.current = false;
       setLoading(false);
       setLoadingMessage(null);
+    }
+  };
+
+  const handleSaveAnalysis = async () => {
+    if (!analysis || !session?.user || saveUiState === "saving" || saveUiState === "saved") {
+      return;
+    }
+
+    setSaveUiState("saving");
+
+    try {
+      await saveEmergencyAnalysisResult(message, analysis);
+      setSaveUiState("saved");
+    } catch {
+      setSaveUiState("save_failed");
     }
   };
 
@@ -84,9 +106,7 @@ export default function EmergencyPage() {
           ) : null}
 
           {fallbackNotice ? (
-            <div className="rounded-3xl border border-sage/30 bg-sage/14 p-4 text-sm leading-7 text-ink/78">
-              {fallbackNotice}
-            </div>
+            <div className="rounded-3xl border border-sage/30 bg-sage/14 p-4 text-sm leading-7 text-ink/78">{fallbackNotice}</div>
           ) : null}
 
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -167,10 +187,52 @@ export default function EmergencyPage() {
                   ) : null}
                 </div>
               </section>
+
+              <section className="space-y-3 rounded-3xl border border-ink/10 p-4">
+                <p className="text-sm font-medium text-ink">保存到账号</p>
+                {isPending ? (
+                  <p className="text-sm leading-7 text-ink/68">正在确认当前登录状态...</p>
+                ) : !session?.user ? (
+                  <div className="space-y-3 text-sm leading-7 text-ink/68">
+                    <p>登录后可保存后续分析。当前未登录状态下，这次救急分析不会自动写入数据库。</p>
+                    <Link href="/login" className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition hover:bg-berry">
+                      登录后可保存后续分析
+                    </Link>
+                  </div>
+                ) : saveUiState === "saved" ? (
+                  <div className="space-y-2 text-sm leading-7 text-ink/68">
+                    <p className="font-medium text-ink">已保存到当前账号</p>
+                    <p>这次救急分析已经写入 `emergency_analyses`，可在 history 查看。</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm leading-7 text-ink/68">
+                      {saveUiState === "saving"
+                        ? "正在保存这次救急分析到你的账号。"
+                        : saveUiState === "save_failed"
+                          ? "保存失败，可直接重试。失败不会被标记为已保存。"
+                          : "当前已登录，可以把这次救急分析保存到你的账号。"}
+                    </p>
+                    {saveUiState === "save_failed" ? (
+                      <div className="rounded-3xl border border-coral/30 bg-coral/8 p-4 text-sm leading-7 text-ink/78">
+                        保存失败。请稍后重试，或先确认当前登录状态是否有效。
+                      </div>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={handleSaveAnalysis}
+                      disabled={saveUiState === "saving"}
+                      className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition hover:bg-berry disabled:bg-ink/40"
+                    >
+                      {saveUiState === "saving" ? "正在保存" : saveUiState === "save_failed" ? "重试保存到我的账号" : "保存到我的账号"}
+                    </button>
+                  </div>
+                )}
+              </section>
             </div>
           ) : (
             <div className="flex min-h-full items-center justify-center rounded-3xl border border-dashed border-ink/15 bg-cream/60 p-8 text-center text-sm leading-7 text-ink/60">
-              这里会显示结构化分析结果。当前阶段不提供保存或转训练能力。
+              这里会显示结构化分析结果。未登录用户可正常生成分析，但不会自动保存。
             </div>
           )}
         </div>

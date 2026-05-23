@@ -12,6 +12,9 @@
 * Stage 5：Neon + Drizzle
 * Stage 6A：BetterAuth + Google 登录
 * Stage 6B：登录用户训练保存 + history
+* Stage 7.0：结果页定位模型修正
+* Stage 7A：单条游客训练结果登录后手动保存到账号
+* Stage 7B：游客保存状态与体验优化
 
 ## 2. 当前文档体系分工
 
@@ -66,7 +69,7 @@
 * 正式写库的 `userId` 必须来自 BetterAuth `session.user.id`
 * `/history` 必须按当前 `session.user.id` 查询
 * 未登录用户不写正式用户表
-* 游客合并留到 Stage 7
+* 游客结果保存仍然只处理当前 `resultId`
 
 ## 6. Database Safety
 
@@ -95,11 +98,30 @@ Google OAuth 排查顺序：
 * 本次真实根因是 Node / Next 服务端到 `oauth2.googleapis.com:443` 不通
 * 需要检查代理 / VPN / `HTTPS_PROXY` / `HTTP_PROXY`
 
-## 8. Current Non-Goals
+## 8. Stage 7 当前稳定状态
+
+已完成：
+
+* 结果页按 `resultId` 精确定位
+* 旧 `/training/[levelKey]/result` 仅作为兼容入口
+* 游客结果登录后可手动保存到账号
+* 保存成功后本地标记 `saved_to_account`
+* 保存失败可重试
+* `/history` 可看到保存后的记录
+
+未完成：
+
+* 不支持批量合并所有游客历史
+* 不做自动静默合并
+* 不更新 `user_progress`
+* 不保存 `emergency_analyses`
+
+## 9. Current Non-Goals
 
 当前仍未做：
 
-* 游客合并
+* 批量游客合并
+* 自动静默合并
 * emergency 保存
 * `user_progress` 统计
 * 付费、管理员、复杂权限
