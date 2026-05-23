@@ -11,24 +11,62 @@
 * Stage 4.5：AI loading + latency
 * Stage 5：Neon + Drizzle
 * Stage 6A：BetterAuth + Google 登录
-* Stage 6B：登录用户训练保存 + history
-* Stage 7.0：结果页定位模型修正
-* Stage 7A：单条游客训练结果登录后手动保存到账号
+* Stage 6B：登录用户训练保存 + `/history`
+* Stage 7.0：结果页按 `resultId` 精确定位
+* Stage 7A：游客结果登录后手动保存
 * Stage 7B：游客保存状态与体验优化
+* Stage 8A：救急分析保存
+* Stage 8B：救急分析历史查看
 
-## 2. 当前文档体系分工
+## 2. 文档分工
 
-当前文档分工如下：
-
-* `ARCHITECTURE.md`：架构决策记录
 * `AGENTS.md`：执行规则
 * `SKILLS.md`：方法库
 * `DEBUG.md`：排错手册
+* `ARCHITECTURE.md`：架构决策记录
 * `STABILITY_NOTES.md`：当前系统状态
 
-## 3. Stable Delivery Pattern
+## 3. Stage 7 当前稳定状态
 
-当前验证有效的交付模式：
+已完成：
+
+* 结果页按 `resultId` 精确定位
+* 旧 `/training/[levelKey]/result` 仅作为兼容入口
+* 游客结果登录后可手动保存到账号
+* 保存成功后本地标记 `saved_to_account`
+* 保存失败可重试
+* `/history` 可看到保存后的训练记录
+
+未完成：
+
+* 不支持批量合并所有游客历史
+* 不做自动静默合并
+* 不更新 `user_progress`
+* 不保存 `emergency_analyses`
+
+## 4. Stage 8 当前稳定状态
+
+已完成：
+
+* `/emergency` 可生成真实 AI 救急分析
+* 登录用户可手动保存救急分析
+* 救急分析写入 `emergency_analyses`
+* `/emergency/history` 可查看当前用户自己的救急历史
+* 未登录用户可使用救急分析，但不会自动写库
+* `/history` 仍只保留训练历史，没有混合救急记录
+
+未完成：
+
+* 不支持删除救急记录
+* 不支持编辑救急记录
+* 不支持搜索、筛选、标签
+* 不支持救急分析详情页
+* 不更新 `user_progress`
+* 不做管理员、付费
+
+## 5. 稳定交付模式
+
+当前已验证有效的交付顺序：
 
 1. 先计划
 2. 再执行
@@ -42,86 +80,13 @@
 * ChatGPT：审查
 * 用户：决策
 
-大任务必须先计划，不得直接写代码。
-
-## 4. AI Stability
-
-已经验证有效的 AI 接入顺序：
-
-1. 先 Schema
-2. 再 Mock Provider
-3. 再 Real Provider
-4. 再调 latency / loading
-
-必须持续遵守：
-
-* AI 输出必须过 Zod Schema
-* fallback 必须存在
-* 用户可见内容必须中文
-* AI action 要记录耗时
-* 不要把 AI 接入和业务链路问题混在一起排查
-
-## 5. Auth and Data Safety
-
-必须持续遵守：
-
-* 前端不得传 `userId`
-* 正式写库的 `userId` 必须来自 BetterAuth `session.user.id`
-* `/history` 必须按当前 `session.user.id` 查询
-* 未登录用户不写正式用户表
-* 游客结果保存仍然只处理当前 `resultId`
-
-## 6. Database Safety
-
-固定流程：
-
-`schema -> db:generate -> 检查 migration -> db:migrate -> seed`
-
-必须持续遵守：
-
-* `db:migrate` / `db:push` / `db:seed` 必须等用户确认
-* migration 中出现 `DROP` / `DELETE` / `TRUNCATE` 必须停下来
-* Neon 项目必须通过 `DATABASE_URL` host 判断，不能靠项目名
-
-## 7. OAuth Stability
-
-Google OAuth 排查顺序：
-
-1. Google Console 配置
-2. callback 参数
-3. BetterAuth / 终端日志
-4. Node 服务端出网能力
-
-关键经验：
-
-* 浏览器能访问 Google，不代表 Node 服务端能访问 `oauth2.googleapis.com`
-* 本次真实根因是 Node / Next 服务端到 `oauth2.googleapis.com:443` 不通
-* 需要检查代理 / VPN / `HTTPS_PROXY` / `HTTP_PROXY`
-
-## 8. Stage 7 当前稳定状态
-
-已完成：
-
-* 结果页按 `resultId` 精确定位
-* 旧 `/training/[levelKey]/result` 仅作为兼容入口
-* 游客结果登录后可手动保存到账号
-* 保存成功后本地标记 `saved_to_account`
-* 保存失败可重试
-* `/history` 可看到保存后的记录
-
-未完成：
-
-* 不支持批量合并所有游客历史
-* 不做自动静默合并
-* 不更新 `user_progress`
-* 不保存 `emergency_analyses`
-
-## 9. Current Non-Goals
+## 6. 当前非目标
 
 当前仍未做：
 
-* 批量游客合并
-* 自动静默合并
-* emergency 保存
+* 救急分析删除
+* 救急分析编辑
+* 救急分析搜索 / 筛选 / 标签
+* 救急分析详情页
 * `user_progress` 统计
-* 付费、管理员、复杂权限
+* 管理员、付费、复杂权限

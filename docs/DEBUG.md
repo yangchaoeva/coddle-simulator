@@ -1,6 +1,20 @@
-# DEBUG NOTES
+# DEBUG
 
-## 0. 调试前强制停顿
+## 救急保存调试 Checklist
+
+排查 Stage 8 时先检查：
+
+1. `/emergency` 是否能正常生成分析
+2. 保存按钮是否只在登录用户或合适状态下显示
+3. 未登录保存是否不会写库
+4. 保存请求是否命中正确接口
+5. Network 保存请求状态码是否为 `200` / `201`
+6. `emergency_analyses` 是否新增 1 条记录
+7. `user_id` 是否等于当前登录用户
+8. `/emergency/history` 是否只查询当前用户数据
+9. 换账号是否看不到别人的救急记录
+
+## 调试前强制停顿
 
 执行任何修复前，必须先回答：
 
@@ -10,116 +24,55 @@
 4. 是否可以先加日志再改逻辑？
 5. 这是配置、网络、schema、代码还是数据问题？
 
-## 1. Scope
+## OAuth / Google 登录调试
 
-本文档整理 Stage 4 到 Stage 7 的关键调错经验，并沉淀成可复用排查套路。
+排查顺序：
 
-## 2. OAuth / Google 登录调试
+1. 检查 Google Console `Authorized redirect URIs`
+2. 检查本地回调地址是否为 `http://localhost:3000/api/auth/callback/google`
+3. 检查 BetterAuth / 终端真实错误
+4. 检查 Node 到 `oauth2.googleapis.com:443` 的出网能力
 
-### 2.1 redirect_uri_mismatch
+关键经验：
 
-优先检查 Google Console：
-
-* `Authorized redirect URIs`
-* 本地回调通常应为：
-  * `http://localhost:3000/api/auth/callback/google`
-
-注意区分：
-
-* `Authorized JavaScript origins`
-* `Authorized redirect URIs`
-
-它们不是同一个配置。
-
-### 2.2 invalid_code / please_restart_the_process
-
-不能只看页面错误。
-
-必须同时检查：
-
-* 浏览器跳转现象
-* BetterAuth callback 行为
-* 终端真实错误
-* Node 服务端网络链路
-
-### 2.3 auth-debug 日志经验
-
-调试 callback 时，以下字段最有价值：
-
-* `hasCookie`
-* `hasState`
-* `hasCode`
-* `repeatedCallback`
-
-如果这些都正常，但登录仍失败，就不要继续猜前端页面逻辑。
-
-### 2.4 本次真实根因
-
-本次真实根因：
-
-* Node / Next 服务端无法连接 `oauth2.googleapis.com:443`
+* `redirect_uri_mismatch` 优先看 Google Console
+* `invalid_code` / `please_restart_the_process` 不能只看页面错误
+* 诊断字段重点看：
+  * `hasCookie`
+  * `hasState`
+  * `hasCode`
+  * `repeatedCallback`
 * 浏览器能访问 Google，不代表 Node 服务端能访问 Google
-* 需要确认代理 / VPN / `HTTPS_PROXY` / `HTTP_PROXY`
+* 需要检查代理 / VPN / `HTTPS_PROXY` / `HTTP_PROXY`
 
-## 3. 数据库迁移与 Seed 排查
+## 数据库链路调试
 
-固定顺序：
+固定链路：
 
-`schema -> db:generate -> 检查 migration -> db:migrate -> seed`
+`schema -> migration -> migrate -> seed -> repository -> API/server page -> UI`
 
 解释：
 
-* schema 是表结构图纸
-* migration 是 SQL 施工文件
-* migrate 是真正改 Neon
-* seed 是写初始数据
-* repository 是数据库读写封装
-* API/server page 是业务入口
-* UI 是最终展示
+* schema：表结构图纸
+* migration：SQL 施工文件
+* migrate：真正改 Neon
+* seed：写初始数据
+* repository：数据库读写封装
+* API/server page：业务入口
+* UI：最终展示
 
-硬规则：
+## Stage 6B 训练保存经验
 
-* `db:migrate` / `db:push` / `db:seed` 必须先得到用户确认
-* migration 中出现 `DROP` / `DELETE` / `TRUNCATE` 必须停下来
-* Neon 项目必须通过 `DATABASE_URL` host 判断，不能靠项目名
+* `POST /api/training-sessions` 不接收 `userId`
+* `userId` 只来自 BetterAuth `session.user.id`
+* `resultId` 只用于训练结果幂等，不用于前端身份归属
+* `/history` 必须按服务端 session 查询当前用户记录
+* 未登录训练结果只本地展示，不正式写库
 
-## 4. 认证与用户数据安全
+## Stage 8 救急分析保存经验
 
-必须继续遵守：
-
-* 前端不得传 `userId`
-* `userId` 必须来自 BetterAuth `session.user.id`
-* `/history` 必须按当前 `session.user.id` 查询
-* 未登录用户不写正式用户表
-* 游客合并留到 Stage 7
-
-## 5. AI Provider 稳定接入
-
-固定顺序：
-
-1. 先 Schema
-2. 再 Mock
-3. 再 Real Provider
-
-必须继续遵守：
-
-* AI 输出必须过 Zod Schema
-* fallback 必须存在
-* 用户可见内容必须中文
-* AI action 要记录耗时
-* 不要把真实 AI 接入和业务链路问题混在一起
-
-## 6. 游客保存调试 Checklist
-
-排查游客结果手动保存时，至少检查：
-
-1. 当前是否在 `/training/result/[resultId]`
-2. `resultId` 是否存在于 localStorage
-3. 是否从结果页入口登录并带 `callbackUrl`
-4. 登录后是否回到同一 `resultId` 页面
-5. 保存是否调用 `POST /api/training-sessions`
-6. `/history` 是否能看到保存结果
-7. Neon 中是否新增：
-   * 1 条 `training_sessions`
-   * 3 条 `dialogue_turns`
-   * 1 条 `score_results`
+* `/emergency` 和 `POST /api/emergency-analyses` 是两段链路，先确认分析能生成，再确认保存能写库
+* 未登录用户可正常生成救急分析，但不应自动写入 `emergency_analyses`
+* `emergency_analyses.user_id` 必须只来自 BetterAuth `session.user.id`
+* `/emergency/history` 必须只查询当前 session 对应用户的数据
+* 救急记录不应混入 `/history`，除非先做新的信息架构评审
