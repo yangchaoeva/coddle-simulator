@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageShell } from "@/components/shell";
-import { getTrainingResultById } from "@/lib/storage";
-import { getLevelsByCharacter } from "@/lib/training";
+import { authClient } from "@/lib/auth-client";
+import { getTrainingResultById, isTrainingResultSynced, markTrainingResultAsSynced } from "@/lib/storage";
+import { getLevelsByCharacter, saveTrainingSessionResult } from "@/lib/training";
 import type { TrainingResult } from "@/types/training";
 
 function ScoreBar({ label, value }: { label: string; value: number }) {
@@ -24,11 +25,41 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
 
 export default function ResultPage() {
   const params = useParams<{ resultId: string }>();
+  const { data: session, isPending } = authClient.useSession();
   const [result, setResult] = useState<TrainingResult | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     setResult(getTrainingResultById(params.resultId));
   }, [params.resultId]);
+
+  const synced = isTrainingResultSynced(result);
+  const loginHref = useMemo(
+    () => `/login?callbackUrl=${encodeURIComponent(`/training/result/${params.resultId}`)}`,
+    [params.resultId],
+  );
+
+  const handleSaveToAccount = async () => {
+    if (!result || saving || synced) {
+      return;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      const response = await saveTrainingSessionResult(result);
+      const nextResult = markTrainingResultAsSynced(result.id, response.sessionId);
+      if (nextResult) {
+        setResult(nextResult);
+      }
+    } catch {
+      setSaveError("保存失败。请稍后重试，或先确认当前登录状态是否有效。");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (!result) {
     return (
@@ -72,6 +103,40 @@ export default function ResultPage() {
           <div className="space-y-4 rounded-3xl border border-ink/10 p-4">
             <ScoreBar label="情绪值变化" value={Math.round(((result.emotionEnd + 100) / 200) * 100)} />
             <ScoreBar label="信任值变化" value={result.trustEnd} />
+          </div>
+
+          <div className="space-y-3 rounded-3xl border border-ink/10 p-4">
+            <p className="text-sm font-medium text-ink">结果保存状态</p>
+            {isPending ? (
+              <p className="text-sm leading-7 text-ink/68">正在确认当前登录状态...</p>
+            ) : !session?.user ? (
+              <div className="space-y-3">
+                <p className="text-sm leading-7 text-ink/68">登录后可将这一条训练结果保存到你的账号。</p>
+                <Link href={loginHref} className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition hover:bg-berry">
+                  登录后可保存到账号
+                </Link>
+              </div>
+            ) : synced ? (
+              <div className="space-y-2 text-sm leading-7 text-ink/68">
+                <p className="font-medium text-ink">已保存到当前账号</p>
+                <p>这条本地训练结果已经完成同步，不会重复显示主保存按钮。</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm leading-7 text-ink/68">当前已登录，可以把这一条训练结果保存到你的账号。</p>
+                {saveError ? (
+                  <div className="rounded-3xl border border-coral/30 bg-coral/8 p-4 text-sm leading-7 text-ink/78">{saveError}</div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={handleSaveToAccount}
+                  disabled={saving}
+                  className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition hover:bg-berry disabled:bg-ink/40"
+                >
+                  {saving ? "正在保存..." : "保存到我的账号"}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-3">

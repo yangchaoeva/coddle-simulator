@@ -37,6 +37,34 @@ export function getTrainingResultById(resultId: string) {
   return getAllTrainingResults().find((item) => item.id === resultId) ?? null;
 }
 
+export function isTrainingResultSynced(result: TrainingResult | null) {
+  return result?.syncStatus === "saved_to_account";
+}
+
+export function markTrainingResultAsSynced(resultId: string, sessionId: string) {
+  if (!canUseStorage()) {
+    return null;
+  }
+
+  const current = getAllTrainingResults();
+  const target = current.find((item) => item.id === resultId);
+
+  if (!target) {
+    return null;
+  }
+
+  const nextResult: TrainingResult = {
+    ...target,
+    syncStatus: "saved_to_account",
+    savedSessionId: sessionId,
+    savedAt: new Date().toISOString(),
+  };
+
+  const next = current.map((item) => (item.id === resultId ? nextResult : item));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  return nextResult;
+}
+
 export function getLatestTrainingResultByLevelKey(levelKey: string) {
   // Compatibility helper for the legacy `/training/[levelKey]/result` route.
   // The primary result route is `/training/result/[resultId]`.

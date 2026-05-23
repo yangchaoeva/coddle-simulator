@@ -1,16 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/shell";
 import { authClient } from "@/lib/auth-client";
+
+function getSafeCallbackPath(callbackUrl: string | null) {
+  if (!callbackUrl) {
+    return "/history";
+  }
+
+  if (!callbackUrl.startsWith("/") || callbackUrl.startsWith("//")) {
+    return "/history";
+  }
+
+  if (callbackUrl.toLowerCase().startsWith("/javascript:")) {
+    return "/history";
+  }
+
+  if (callbackUrl === "/" || callbackUrl === "/history") {
+    return callbackUrl;
+  }
+
+  if (/^\/training\/result\/[^/?#]+$/.test(callbackUrl)) {
+    return callbackUrl;
+  }
+
+  return "/history";
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [callbackPath, setCallbackPath] = useState("/history");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setCallbackPath(getSafeCallbackPath(params.get("callbackUrl")));
+  }, []);
 
   const handleGoogleSignIn = async () => {
     if (submitting) {
@@ -23,7 +53,7 @@ export default function LoginPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "http://localhost:3000/history",
+        callbackURL: `${window.location.origin}${callbackPath}`,
       });
     } catch {
       setError("Google 登录未完成。请检查回调地址和 Google OAuth 配置。");
@@ -40,7 +70,7 @@ export default function LoginPage() {
     <PageShell
       eyebrow="Login"
       title="Google 登录"
-      description="Stage 6A 只接入 BetterAuth + Google OAuth。当前不开放邮箱密码登录，不保存训练记录，不做游客合并。"
+      description="当前通过 BetterAuth + Google OAuth 登录。登录成功后会回到安全校验通过的站内页面。"
     >
       <section className="rounded-4xl border border-white/70 bg-white/85 p-6 shadow-card">
         {isPending ? (
@@ -54,10 +84,10 @@ export default function LoginPage() {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/history"
+                href={callbackPath}
                 className="rounded-full bg-ink px-5 py-3 text-center text-sm font-medium text-white transition hover:bg-berry"
               >
-                去历史页
+                返回目标页
               </Link>
               <button
                 type="button"
@@ -72,7 +102,7 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div className="rounded-3xl bg-cream p-5 text-sm leading-7 text-ink/72">
               <p className="font-medium text-ink">当前范围</p>
-              <p>这一阶段只验证 Google 登录闭环，暂时不会保存训练、救急、游客数据。</p>
+              <p>登录完成后会回到当前训练结果页或默认历史页。当前阶段不做自动静默合并。</p>
             </div>
             {error ? (
               <div className="rounded-3xl border border-coral/30 bg-coral/8 p-4 text-sm leading-7 text-ink/78">{error}</div>

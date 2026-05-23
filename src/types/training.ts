@@ -36,6 +36,9 @@ export type TrainingResult = {
   trustEnd: number;
   rounds: RoundRecord[];
   finalReview: FinalReview;
+  syncStatus?: "guest_only" | "saved_to_account";
+  savedSessionId?: string;
+  savedAt?: string;
 };
 
 export type TrainingRoundBlocked = {
