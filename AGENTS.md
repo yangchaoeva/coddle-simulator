@@ -179,6 +179,9 @@ JSON.parse(aiResponse)
 
 * `emergency_analyses` 保存不得自动静默触发
 * `emergency_analyses` 的 `userId` 必须来自 `session.user.id`
+* `emergency_analyses` 只能通过服务端 `session.user.id` 写入
+* 不得让前端传 `userId`
 * 不得把救急记录混入 `/history`，除非进入新的信息架构阶段
-* 不得提前实现删除、编辑、搜索、筛选、详情页
+* 不得提前做转训练、删除、编辑、搜索、筛选、详情页
+* 不得把 `/emergency/history` 和 `/history` 混成复杂大页，除非先做设计评审
 * 不得读取或输出用户真实救急输入之外的 secret 信息

@@ -5,13 +5,13 @@
 排查 Stage 8 时先检查：
 
 1. `/emergency` 是否能正常生成分析
-2. 保存按钮是否只在登录用户或合适状态下显示
-3. 未登录保存是否不会写库
-4. 保存请求是否命中正确接口
+2. 未登录是否没有自动调用 `POST /api/emergency-analyses`
+3. 保存按钮是否只在登录用户或合适状态下显示
+4. 已登录保存是否调用 `POST /api/emergency-analyses`
 5. Network 保存请求状态码是否为 `200` / `201`
 6. `emergency_analyses` 是否新增 1 条记录
 7. `user_id` 是否等于当前登录用户
-8. `/emergency/history` 是否只查询当前用户数据
+8. `/emergency/history` 是否只显示当前用户记录
 9. 换账号是否看不到别人的救急记录
 
 ## 调试前强制停顿

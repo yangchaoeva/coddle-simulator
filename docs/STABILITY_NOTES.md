@@ -48,6 +48,8 @@
 
 已完成：
 
+* Stage 8A：`/emergency` 救急分析手动保存
+* Stage 8B：`/emergency/history` 救急历史页
 * `/emergency` 可生成真实 AI 救急分析
 * 登录用户可手动保存救急分析
 * 救急分析写入 `emergency_analyses`
@@ -61,6 +63,7 @@
 * 不支持编辑救急记录
 * 不支持搜索、筛选、标签
 * 不支持救急分析详情页
+* 不支持转训练
 * 不更新 `user_progress`
 * 不做管理员、付费
 

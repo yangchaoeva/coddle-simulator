@@ -320,3 +320,52 @@ localStorage 不可信，也不是最终真相来源。
 **Future notes**
 
 后续即使增加详情页或删除操作，这条边界也不能变。
+
+## ADR-014：救急分析保存到 emergency_analyses
+
+**Decision**
+
+救急分析正式保存到 `emergency_analyses`，不复用训练表。
+
+**Reason**
+
+救急分析和训练记录是两类不同数据，字段结构、展示方式和后续演进方向都不同。
+
+**Applies to**
+
+* Stage 8A
+* `/emergency`
+* `POST /api/emergency-analyses`
+
+**Must not break**
+
+* 不把救急分析混写进训练历史表
+* 不把训练字段强塞进 emergency 记录
+
+**Future notes**
+
+后续做详情页或管理能力，也应继续以 `emergency_analyses` 为正式来源。
+
+## ADR-015：userConsentedToSave 由服务端设置
+
+**Decision**
+
+`userConsentedToSave` 由服务端在正式写入 `emergency_analyses` 时设置为 `true`。
+
+**Reason**
+
+这个字段代表正式保存行为是否发生，不能由前端自行声明。
+
+**Applies to**
+
+* Stage 8A
+* `POST /api/emergency-analyses`
+
+**Must not break**
+
+* 前端不得提交 `userConsentedToSave`
+* 未登录分析不得被写成已同意保存
+
+**Future notes**
+
+后续如果加入更多 consent 相关状态，也应继续由服务端统一决定正式写入值。
