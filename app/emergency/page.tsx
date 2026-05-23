@@ -124,6 +124,12 @@ export default function EmergencyPage() {
             >
               去训练模式
             </Link>
+            <Link
+              href="/emergency/history"
+              className="rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-center text-sm font-medium text-ink transition hover:border-ink/30 hover:bg-white"
+            >
+              查看救急历史
+            </Link>
           </div>
 
           <p className="text-xs leading-6 text-ink/55">当前接入真实 AI，输出仍会经过结构化校验和 fallback。</p>
@@ -202,7 +208,7 @@ export default function EmergencyPage() {
                 ) : saveUiState === "saved" ? (
                   <div className="space-y-2 text-sm leading-7 text-ink/68">
                     <p className="font-medium text-ink">已保存到当前账号</p>
-                    <p>这次救急分析已经写入 `emergency_analyses`，可在 history 查看。</p>
+                    <p>这次救急分析已经写入 `emergency_analyses`，可在救急历史中查看。</p>
                   </div>
                 ) : (
                   <div className="space-y-3">

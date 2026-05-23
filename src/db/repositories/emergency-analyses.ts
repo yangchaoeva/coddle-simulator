@@ -13,6 +13,7 @@ export type EmergencyHistoryItem = {
   userInput: string;
   emotionAnalysis: string;
   hiddenNeed: string | null;
+  suggestedReply: string | null;
   matchedCharacterType: string | null;
   convertedToTraining: boolean;
   createdAt: Date;
@@ -56,6 +57,7 @@ export async function getEmergencyHistoryForUser(userId: string): Promise<Emerge
       userInput: emergencyAnalyses.userInput,
       emotionAnalysis: emergencyAnalyses.emotionAnalysis,
       hiddenNeed: emergencyAnalyses.hiddenNeed,
+      suggestedReply: emergencyAnalyses.suggestedReply,
       matchedCharacterType: emergencyAnalyses.matchedCharacterType,
       convertedToTraining: emergencyAnalyses.convertedToTraining,
       createdAt: emergencyAnalyses.createdAt,
@@ -69,6 +71,7 @@ export async function getEmergencyHistoryForUser(userId: string): Promise<Emerge
     userInput: record.userInput,
     emotionAnalysis: record.emotionAnalysis,
     hiddenNeed: record.hiddenNeed,
+    suggestedReply: record.suggestedReply,
     matchedCharacterType: record.matchedCharacterType,
     convertedToTraining: record.convertedToTraining,
     createdAt: record.createdAt,
