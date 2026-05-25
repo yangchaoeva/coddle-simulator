@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageShell } from "@/components/shell";
 import { buildTrainingResult, getCharacterByType, getLevelByKey, runTrainingRound, saveTrainingSessionResult } from "@/lib/training";
-import { saveTrainingResult } from "@/lib/storage";
+import { markTrainingResultAsSynced, saveTrainingResult } from "@/lib/storage";
 import type { RoundRecord } from "@/types/training";
 
 function StatBar({ label, value, min }: { label: string; value: number; min?: number }) {
@@ -200,6 +200,9 @@ export default function TrainingPage() {
               resultId: result.id,
               saveStatus: saveResponse.status,
             });
+            if (saveResponse.status === "created" || saveResponse.status === "completed") {
+              markTrainingResultAsSynced(result.id, saveResponse.sessionId);
+            }
           } catch (error) {
             const errorInfo =
               error instanceof Error
