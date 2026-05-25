@@ -49,6 +49,18 @@ export function generateResultId() {
   return `result-${Date.now()}`;
 }
 
+export class AIEndpointError extends Error {
+  code: "AI_LOGIN_REQUIRED" | "AI_QUOTA_EXCEEDED" | "AI_ENDPOINT_FAILED";
+  status: number;
+
+  constructor(code: "AI_LOGIN_REQUIRED" | "AI_QUOTA_EXCEEDED" | "AI_ENDPOINT_FAILED", message: string, status: number) {
+    super(message);
+    this.name = "AIEndpointError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 async function callAIEndpoint<T>(action: string, payload: unknown): Promise<T> {
   const response = await fetch(`/api/ai/${action}`, {
     method: "POST",
@@ -59,7 +71,26 @@ async function callAIEndpoint<T>(action: string, payload: unknown): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`AI endpoint failed: ${action}`);
+    let error = "AI_ENDPOINT_FAILED";
+    let message = `AI endpoint failed: ${action}`;
+
+    try {
+      const body = (await response.json()) as { error?: string; message?: string };
+      if (body.error === "AI_LOGIN_REQUIRED" || body.error === "AI_QUOTA_EXCEEDED") {
+        error = body.error;
+      }
+      if (body.message) {
+        message = body.message;
+      }
+    } catch {
+      // Ignore non-JSON error bodies and keep the fallback message.
+    }
+
+    throw new AIEndpointError(
+      error as "AI_LOGIN_REQUIRED" | "AI_QUOTA_EXCEEDED" | "AI_ENDPOINT_FAILED",
+      message,
+      response.status,
+    );
   }
 
   return (await response.json()) as T;

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getLatestAIDiagnostic } from "@/ai/diagnostics";
 import { getServerAIProvider, getServerAIProviderMode } from "@/ai/server-provider";
+import { checkAndConsumeAIQuotaForUser } from "@/db/repositories/ai-usage-counters";
+import { auth } from "@/lib/auth";
 import type {
   EmergencyAnalysisParams,
   FinalReviewParams,
@@ -22,6 +24,8 @@ const agentNameByAction: Record<string, string> = {
   "final-review": "FinalReviewAgent",
   "emergency-analysis": "EmergencyAnalysisAgent",
 };
+
+const quotaConsumingActions = new Set(["final-review", "emergency-analysis"]);
 
 function buildJsonResponse(action: string, providerMode: string, result: unknown, durationMs: number) {
   const fallbackUsed = typeof result === "object" && result !== null && "fallback" in result ? Boolean(result.fallback) : false;
@@ -68,6 +72,40 @@ export async function POST(request: Request, context: RouteContext) {
   const payload = await request.json();
   const startedAt = Date.now();
   const withDuration = (result: unknown) => buildJsonResponse(action, providerMode, result, Date.now() - startedAt);
+
+  let sessionUserId: string | null = null;
+
+  if (providerMode === "real") {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          error: "AI_LOGIN_REQUIRED",
+          message: "登录后才能使用真实 AI",
+        },
+        { status: 401 },
+      );
+    }
+
+    sessionUserId = session.user.id;
+
+    if (quotaConsumingActions.has(action)) {
+      const quotaResult = await checkAndConsumeAIQuotaForUser(sessionUserId);
+
+      if (!quotaResult.allowed) {
+        return NextResponse.json(
+          {
+            error: "AI_QUOTA_EXCEEDED",
+            message: "免费 AI 体验次数已用完",
+          },
+          { status: 429 },
+        );
+      }
+    }
+  }
 
   switch (action) {
     case "validate":

@@ -230,6 +230,21 @@ export const userProgress = pgTable(
   }),
 );
 
+export const aiUsageCounters = pgTable(
+  "ai_usage_counters",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    freeQuotaLimit: integer("free_quota_limit").default(3).notNull(),
+    usedCount: integer("used_count").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    aiUsageCountersUserIdUnique: uniqueIndex("ai_usage_counters_user_id_unique").on(table.userId),
+  }),
+);
+
 export const emergencyAnalyses = pgTable(
   "emergency_analyses",
   {

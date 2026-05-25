@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/shell";
 import { authClient } from "@/lib/auth-client";
-import { analyzeEmergencyMessage, saveEmergencyAnalysisResult } from "@/lib/training";
+import { AIEndpointError, analyzeEmergencyMessage, saveEmergencyAnalysisResult } from "@/lib/training";
 import type { EmergencyAnalysis } from "@/types/training";
 
 type SaveUiState = "idle" | "saving" | "saved" | "save_failed";
@@ -19,6 +19,7 @@ export default function EmergencyPage() {
   const [slowHintVisible, setSlowHintVisible] = useState(false);
   const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
   const [saveUiState, setSaveUiState] = useState<SaveUiState>("idle");
+  const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading) {
@@ -43,6 +44,7 @@ export default function EmergencyPage() {
     setLoadingMessage("正在分析她的情绪和潜台词...");
     setSlowHintVisible(false);
     setFallbackNotice(null);
+    setRequestErrorMessage(null);
     setSaveUiState("idle");
 
     try {
@@ -52,6 +54,20 @@ export default function EmergencyPage() {
       if (nextAnalysis.fallback) {
         setFallbackNotice("本次分析不太稳定，已为你生成基础建议。");
       }
+    } catch (error) {
+      if (error instanceof AIEndpointError) {
+        if (error.code === "AI_LOGIN_REQUIRED") {
+          setRequestErrorMessage("登录后可免费体验 3 次 AI 功能。");
+          return;
+        }
+
+        if (error.code === "AI_QUOTA_EXCEEDED") {
+          setRequestErrorMessage("免费 AI 体验次数已用完。");
+          return;
+        }
+      }
+
+      setRequestErrorMessage("AI 服务暂时不可用，请稍后再试。");
     } finally {
       requestLockRef.current = false;
       setLoading(false);
@@ -107,6 +123,10 @@ export default function EmergencyPage() {
 
           {fallbackNotice ? (
             <div className="rounded-3xl border border-sage/30 bg-sage/14 p-4 text-sm leading-7 text-ink/78">{fallbackNotice}</div>
+          ) : null}
+
+          {requestErrorMessage ? (
+            <div className="rounded-3xl border border-coral/30 bg-coral/8 p-4 text-sm leading-7 text-ink/78">{requestErrorMessage}</div>
           ) : null}
 
           <div className="flex flex-col gap-3 sm:flex-row">

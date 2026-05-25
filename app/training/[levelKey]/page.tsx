@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageShell } from "@/components/shell";
-import { buildTrainingResult, getCharacterByType, getLevelByKey, runTrainingRound, saveTrainingSessionResult } from "@/lib/training";
+import { AIEndpointError, buildTrainingResult, getCharacterByType, getLevelByKey, runTrainingRound, saveTrainingSessionResult } from "@/lib/training";
 import { markTrainingResultAsSynced, saveTrainingResult } from "@/lib/storage";
 import type { RoundRecord } from "@/types/training";
 
@@ -51,6 +51,7 @@ export default function TrainingPage() {
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [validationRewrite, setValidationRewrite] = useState<string | null>(null);
   const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
+  const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!submitting) {
@@ -107,6 +108,7 @@ export default function TrainingPage() {
     setValidationMessage(null);
     setValidationRewrite(null);
     setFallbackNotice(null);
+    setRequestErrorMessage(null);
 
     try {
       const outcome = await runTrainingRound({
@@ -129,10 +131,12 @@ export default function TrainingPage() {
       }
 
       const nextRounds = [...rounds, outcome.record];
-      setRounds(nextRounds);
-      setReply("");
-      setValidationMessage(outcome.record.validation.userMessageToShow);
-      setValidationRewrite(outcome.record.validation.suggestedRewrite ?? null);
+      if (currentRound < 3) {
+        setRounds(nextRounds);
+        setReply("");
+        setValidationMessage(outcome.record.validation.userMessageToShow);
+        setValidationRewrite(outcome.record.validation.suggestedRewrite ?? null);
+      }
 
       if (outcome.record.score.fallback || outcome.record.girlfriendReply.fallback) {
         setFallbackNotice("本次分析不太稳定，已为你生成基础建议。");
@@ -157,6 +161,20 @@ export default function TrainingPage() {
           router.push(`/training/result/${result.id}`);
         }
       }
+    } catch (error) {
+      if (error instanceof AIEndpointError) {
+        if (error.code === "AI_LOGIN_REQUIRED") {
+          setRequestErrorMessage("登录后可免费体验 3 次 AI 功能。");
+          return;
+        }
+
+        if (error.code === "AI_QUOTA_EXCEEDED") {
+          setRequestErrorMessage("免费 AI 体验次数已用完。");
+          return;
+        }
+      }
+
+      setRequestErrorMessage("AI 服务暂时不可用，请稍后再试。");
     } finally {
       submitLockRef.current = false;
       setSubmitting(false);
@@ -236,6 +254,12 @@ export default function TrainingPage() {
           {fallbackNotice ? (
             <div className="rounded-3xl border border-sage/30 bg-sage/14 p-4 text-sm leading-7 text-ink/78">
               {fallbackNotice}
+            </div>
+          ) : null}
+
+          {requestErrorMessage ? (
+            <div className="rounded-3xl border border-coral/30 bg-coral/8 p-4 text-sm leading-7 text-ink/78">
+              {requestErrorMessage}
             </div>
           ) : null}
 
