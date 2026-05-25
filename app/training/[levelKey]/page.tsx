@@ -100,6 +100,12 @@ export default function TrainingPage() {
       return;
     }
 
+    console.info("[training-flow] submit-start", {
+      currentRound,
+      levelKey: level.levelKey,
+      roundsLength: rounds.length,
+    });
+
     submitLockRef.current = true;
     setSubmitting(true);
     setLoadingMessage("正在理解你的回复...");
@@ -122,7 +128,20 @@ export default function TrainingPage() {
         },
       });
 
+      console.info("[training-flow] outcome", {
+        currentRound,
+        levelKey: level.levelKey,
+        outcomeStatus: outcome.status,
+        roundsLength: rounds.length,
+      });
+
       if (outcome.status === "blocked") {
+        console.info("[training-flow] blocked", {
+          currentRound,
+          levelKey: level.levelKey,
+          outcomeStatus: outcome.status,
+          roundsLength: rounds.length,
+        });
         setValidationMessage(outcome.validation.userMessageToShow);
         setValidationRewrite(outcome.validation.suggestedRewrite ?? null);
         return;
@@ -139,18 +158,72 @@ export default function TrainingPage() {
       }
 
       if (currentRound === 3) {
+        console.info("[training-flow] final-round-enter", {
+          currentRound,
+          levelKey: level.levelKey,
+          outcomeStatus: outcome.status,
+          roundsLength: rounds.length,
+          nextRoundsLength: nextRounds.length,
+        });
         setLoadingMessage("正在生成完整复盘，可能需要几秒...");
         const result = await buildTrainingResult(level.levelKey, nextRounds);
+        console.info("[training-flow] build-result", {
+          currentRound,
+          levelKey: level.levelKey,
+          outcomeStatus: outcome.status,
+          roundsLength: rounds.length,
+          nextRoundsLength: nextRounds.length,
+          hasResult: Boolean(result),
+          resultId: result?.id ?? null,
+        });
         if (result) {
           if (result.finalReview.fallback) {
             setFallbackNotice("本次分析不太稳定，已为你生成基础建议。");
           }
           saveTrainingResult(result);
           try {
-            await saveTrainingSessionResult(result);
+            console.info("[training-flow] save-start", {
+              currentRound,
+              levelKey: level.levelKey,
+              roundsLength: rounds.length,
+              nextRoundsLength: nextRounds.length,
+              hasResult: true,
+              resultId: result.id,
+            });
+            const saveResponse = await saveTrainingSessionResult(result);
+            console.info("[training-flow] save-done", {
+              currentRound,
+              levelKey: level.levelKey,
+              roundsLength: rounds.length,
+              nextRoundsLength: nextRounds.length,
+              hasResult: true,
+              resultId: result.id,
+              saveStatus: saveResponse.status,
+            });
           } catch (error) {
+            const errorInfo =
+              error instanceof Error
+                ? { errorName: error.name, errorMessage: error.message }
+                : { errorName: "UnknownError", errorMessage: String(error) };
+            console.info("[training-flow] save-error", {
+              currentRound,
+              levelKey: level.levelKey,
+              roundsLength: rounds.length,
+              nextRoundsLength: nextRounds.length,
+              hasResult: true,
+              resultId: result.id,
+              ...errorInfo,
+            });
             console.error("[training-save]", error);
           }
+          console.info("[training-flow] push-result", {
+            currentRound,
+            levelKey: level.levelKey,
+            roundsLength: rounds.length,
+            nextRoundsLength: nextRounds.length,
+            hasResult: true,
+            resultId: result.id,
+          });
           router.push(`/training/result/${result.id}`);
         }
       }
