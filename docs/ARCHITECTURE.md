@@ -2,370 +2,204 @@
 
 ## ADR-001：AI 输出必须经过 Zod Schema
 
-**Decision**
+### Decision
 
-所有 AI 输出必须先经过 Zod Schema 校验，失败时必须走 fallback。
+所有 AI 输出必须先经过 Zod Schema 校验，失败时必须进入 fallback。
 
-**Reason**
+### Reason
 
 真实模型输出不稳定，字段缺失或类型漂移会直接污染业务链路。
 
-**Applies to**
+### Applies to
 
-* 女友回复
-* 回合评分
-* 最终复盘
-* 救急分析
+- 女友回复
+- 单轮评分
+- 最终复盘
+- 救急分析
 
-**Must not break**
+### Must not break
 
-* 前端只消费结构化结果
-* 不允许直接 `JSON.parse(aiResponse)` 后进入业务
-
-**Future notes**
-
-更换模型、Provider 或 prompt 时，这条边界不变。
+- 前端只消费结构化结果
+- 不允许直接 `JSON.parse(aiResponse)` 后进入业务逻辑
 
 ## ADR-002：先 Mock Provider，再接 Real Provider
 
-**Decision**
+### Decision
 
 AI 接入顺序固定为：先 Schema，再 Mock Provider，再 Real Provider。
 
-**Reason**
+### Reason
 
 先打通接口形状和结构，才能把“模型问题”和“业务链路问题”分开。
 
-**Applies to**
+## ADR-003：正式数据归属必须由服务端决定
 
-* 训练链路
-* 救急链路
+### Decision
 
-**Must not break**
+正式写库的用户身份只能由服务端通过 BetterAuth `session.user.id` 决定。
 
-* Mock 和 Real Provider 共享同一接口形状
-
-**Future notes**
-
-后续新增 AI action 时，也先补 Schema 和 Mock。
-
-## ADR-003：userId 必须来自 BetterAuth session，前端不得传 userId
-
-**Decision**
-
-正式写库用户身份只能由服务端通过 BetterAuth `session.user.id` 决定。
-
-**Reason**
+### Reason
 
 前端身份不可信，不能由 query string、localStorage 或前端参数决定数据归属。
 
-**Applies to**
+### Must not break
 
-* 训练保存
-* 救急保存
-* `/history`
-* `/emergency/history`
+- API 不接收前端传入的 `userId`
+- 页面查询不按前端参数决定用户归属
 
-**Must not break**
+## ADR-004：训练记录拆分为三层结构
 
-* API 不得接收 `userId`
-* 页面查询不得按前端传参决定用户
+### Decision
 
-**Future notes**
+训练结果正式拆分为：
 
-后续加详情、删除或筛选，这条边界仍成立。
+- `training_sessions`
+- `dialogue_turns`
+- `score_results`
 
-## ADR-004：训练记录拆成 training_sessions / dialogue_turns / score_results
+### Reason
 
-**Decision**
+训练天然包含会话层、回合层和最终评分层，拆开后更利于查询、幂等和统计。
 
-训练结果拆成三层正式结构：
+## ADR-005：Stage 6 拆为登录闭环与训练保存闭环
 
-* `training_sessions`
-* `dialogue_turns`
-* `score_results`
+### Decision
 
-**Reason**
+Stage 6 分为：
 
-训练天然包含会话层、回合层和最终评分层，拆开后查询、幂等和统计更清晰。
+- Stage 6A：BetterAuth + Google 登录闭环
+- Stage 6B：登录用户训练保存 + `/history`
 
-**Applies to**
+### Reason
 
-* Stage 6B
-* 训练历史
+认证闭环和业务写库是两条不同链路，拆开后调试边界更清晰。
 
-**Must not break**
+## ADR-006：数据库变更必须经过 generate -> review migration -> migrate
 
-* 不把三轮训练压成一个大 JSON 替代正式结构
-
-**Future notes**
-
-后续 `user_progress` 应基于这三层聚合。
-
-## ADR-005：Stage 6 拆成 6A 登录闭环和 6B 训练保存
-
-**Decision**
-
-Stage 6 分成：
-
-* Stage 6A：BetterAuth + Google 登录闭环
-* Stage 6B：登录用户训练保存 + `/history`
-
-**Reason**
-
-认证闭环和业务写库是两段不同链路，拆开后调试范围更可控。
-
-**Applies to**
-
-* 登录
-* 训练保存
-* 训练历史
-
-**Must not break**
-
-* 6A 不提前做训练保存
-* 6B 不反过来重构登录闭环
-
-**Future notes**
-
-后续继续沿用“先闭环，再扩功能”的阶段法。
-
-## ADR-006：数据库变更使用 generate -> review migration -> migrate
-
-**Decision**
+### Decision
 
 数据库变更流程固定为：
 
 `schema -> db:generate -> review migration -> db:migrate`
 
-不随意直接 `db:push`。
+### Reason
 
-**Reason**
+必须保留 SQL 审查点，避免无检查地执行破坏性变更。
 
-需要保留 SQL 审查点，避免无检查地执行破坏性变更。
+## ADR-007：游客合并推迟到后续阶段
 
-**Applies to**
+### Decision
 
-* 所有 schema 变更
+Stage 6B 只做登录用户训练保存，不做游客结果自动补写；游客合并延后到后续阶段。
 
-**Must not break**
+### Reason
 
-* migration 出现 `DROP` / `DELETE` / `TRUNCATE` 时必须停下来
-* 执行 `db:migrate` 前必须得到用户确认
+游客合并涉及本地数据结构、幂等、归属校验和回滚策略，不应夹在登录保存闭环里一起做。
 
-**Future notes**
+## ADR-008：正式结果页必须按 resultId 定位
 
-即使工具升级，也不能去掉 review 环节。
+### Decision
 
-## ADR-007：游客合并推迟到 Stage 7，Stage 6B 不做自动补写
+正式结果页必须按 `resultId` 定位训练结果，而不是按 `levelKey`。
 
-**Decision**
+### Reason
 
-Stage 6B 只做登录用户训练保存，不做游客结果自动补写；游客合并推迟到 Stage 7。
+`levelKey` 表示关卡，不表示某一次训练结果。同一关卡可训练多次，只有 `resultId` 才能唯一定位。
 
-**Reason**
+## ADR-009：游客结果保存采用手动确认
 
-游客合并涉及本地数据结构、幂等、归属校验和回滚策略，不适合夹在 Stage 6B 一起做。
+### Decision
 
-**Applies to**
+游客结果登录后保存采用手动确认，不做静默自动合并。
 
-* Stage 6B
-* Stage 7
+### Reason
 
-**Must not break**
+可以避免用户不知情写库，也避免本地批量误写入。
 
-* 未登录训练结果仍只本地展示
+## ADR-010：本地 syncStatus 只用于 UI 状态
 
-**Future notes**
+### Decision
 
-进入 Stage 7 前必须先做设计评审。
+本地 `syncStatus` 只用于 UI 展示；真正的归属和幂等保障由服务端保存链路保证。
 
-## ADR-008：结果页必须按 resultId 定位，而不是按 levelKey 定位
+### Reason
 
-**Decision**
+localStorage 不是最终真相来源，只能作为前端展示态的辅助标记。
 
-正式结果页必须按 `resultId` 定位本地训练结果。
+## ADR-011：救急历史独立于训练历史
 
-**Reason**
+### Decision
 
-`levelKey` 表示关卡，不表示某次训练结果。同一关卡可训练多次，只有 `resultId` 才能唯一定位。
+救急分析历史独立使用 `/emergency/history`，不混入 `/history`。
 
-**Applies to**
+### Reason
 
-* `/training/result/[resultId]`
-* 游客结果保存
-
-**Must not break**
-
-* 不得继续把 `/training/[levelKey]/result` 当正式结果页扩展
-
-**Future notes**
-
-后续回放、分享或历史联动都应继续沿用 `resultId`。
-
-## ADR-009：游客结果保存采用手动保存，而不是自动静默合并
-
-**Decision**
-
-游客结果登录后保存采用手动确认，不做自动静默合并。
-
-**Reason**
-
-这样能避免用户不知情写库，也能避免批量误写入。
-
-**Applies to**
-
-* Stage 7A
-* Stage 7B
-
-**Must not break**
-
-* 不得批量扫描并自动写入所有本地结果
-
-**Future notes**
-
-若后续要做更自动化的合并，必须先做评审和回滚设计。
-
-## ADR-010：本地 syncStatus 只作为 UI 状态，真正幂等由服务端 resultId 保证
-
-**Decision**
-
-本地 `syncStatus` 只用于 UI 展示；真正幂等和归属保护由服务端 `resultId` 机制保证。
-
-**Reason**
-
-localStorage 不可信，也不是最终真相来源。
-
-**Applies to**
-
-* Stage 7A
-* Stage 7B
-
-**Must not break**
-
-* 本地状态丢失不能导致越权或覆盖
-* 保存失败不能误标为已同步
-
-**Future notes**
-
-服务端数据库始终是最终状态来源。
-
-## ADR-011：救急历史独立使用 /emergency/history，而不是混入 /history
-
-**Decision**
-
-救急分析历史独立使用 `/emergency/history`，不先混入 `/history`。
-
-**Reason**
-
-训练历史和救急分析是两类不同记录，展示字段不同。先保持信息架构清晰，避免 `/history` 过早复杂化。
-
-**Applies to**
-
-* Stage 8B
-* 救急历史入口
-
-**Must not break**
-
-* `/history` 继续保留训练历史定位
-
-**Future notes**
-
-若后续要统一历史中心，必须先做新的信息架构评审。
+训练记录和救急分析是两类不同数据，字段结构、展示方式和后续演进方向不同。
 
 ## ADR-012：救急分析保存必须手动触发
 
-**Decision**
+### Decision
 
 救急分析保存必须由登录用户手动点击触发，不做自动静默保存。
 
-**Reason**
+### Reason
 
-救急输入可能包含真实聊天隐私，用户应明确知道本次分析会保存到账号。
+救急输入可能包含真实聊天隐私，用户必须明确知道本次分析会保存到账号。
 
-**Applies to**
+## ADR-013：emergency_analyses 的 userId 只来自服务端 session
 
-* Stage 8A
-* `/emergency`
+### Decision
 
-**Must not break**
+`emergency_analyses.userId` 只能由服务端通过 BetterAuth `session.user.id` 获取。
 
-* 未登录用户不自动写库
-* 已登录用户不因生成分析就自动写入 `emergency_analyses`
+### Reason
 
-**Future notes**
+保存和查询都必须按服务端 session 做数据隔离。
 
-后续新增更多救急记录能力，也必须保持手动触发保存。
+## ADR-014：救急分析正式保存到 emergency_analyses
 
-## ADR-013：emergency_analyses 的 userId 必须来自 BetterAuth session
-
-**Decision**
-
-`emergency_analyses` 的 `userId` 只能由服务端通过 BetterAuth `session.user.id` 获取。
-
-**Reason**
-
-前端身份不可信；保存和查询都必须按 `session.user.id` 做数据隔离。
-
-**Applies to**
-
-* `POST /api/emergency-analyses`
-* `/emergency/history`
-
-**Must not break**
-
-* 前端不得传 `userId`
-* 不得通过 query string、localStorage 或前端参数决定 emergency 记录归属
-
-**Future notes**
-
-后续即使增加详情页或删除操作，这条边界也不能变。
-
-## ADR-014：救急分析保存到 emergency_analyses
-
-**Decision**
+### Decision
 
 救急分析正式保存到 `emergency_analyses`，不复用训练表。
 
-**Reason**
+### Reason
 
-救急分析和训练记录是两类不同数据，字段结构、展示方式和后续演进方向都不同。
-
-**Applies to**
-
-* Stage 8A
-* `/emergency`
-* `POST /api/emergency-analyses`
-
-**Must not break**
-
-* 不把救急分析混写进训练历史表
-* 不把训练字段强塞进 emergency 记录
-
-**Future notes**
-
-后续做详情页或管理能力，也应继续以 `emergency_analyses` 为正式来源。
+救急分析与训练记录是两类不同数据，不应强行混表。
 
 ## ADR-015：userConsentedToSave 由服务端设置
 
-**Decision**
+### Decision
 
-`userConsentedToSave` 由服务端在正式写入 `emergency_analyses` 时设置为 `true`。
+`userConsentedToSave` 由服务端在正式写入 `emergency_analyses` 时设置。
 
-**Reason**
+### Reason
 
-这个字段代表正式保存行为是否发生，不能由前端自行声明。
+这个字段代表正式保存行为是否发生，不应由前端自行声明。
 
-**Applies to**
+## 认证与数据归属原则
 
-* Stage 8A
-* `POST /api/emergency-analyses`
+- 前端不传 `userId`
+- `userId` 只来自服务端 BetterAuth session
+- 前端 session 只用于 UI 展示，不作为正式保存开关
+- `/history` 固定按服务端 `session.user.id` 查询
 
-**Must not break**
+### 解释
 
-* 前端不得提交 `userConsentedToSave`
-* 未登录分析不得被写成已同意保存
+- 前端看到“已登录”只代表可以展示登录相关 UI，不代表允许以前端状态决定数据归属。
+- 任何正式写库动作都必须由服务端重新确认 session。
+- 任何历史查询都必须由服务端按当前 session 限定数据范围。
 
-**Future notes**
+## 训练结果保存状态原则
 
-后续如果加入更多 consent 相关状态，也应继续由服务端统一决定正式写入值。
+- 训练结果先本地保存
+- 已登录时自动 `POST /api/training-sessions`
+- 服务端返回 `created` / `completed` 后，本地执行 `markTrainingResultAsSynced`
+- `unauthorized` 不标记已保存
+- `error` 不标记已保存
+
+### 解释
+
+- 本地先保存，是为了保证结果页和游客体验完整。
+- 自动保存是登录用户的正式写库链路。
+- 结果页是否显示“已保存”，不能只看当前是否登录，必须看本地结果是否已被标记为同步完成。
+- 如果服务端没有明确返回成功，则不能把本地结果误标为已保存。
