@@ -50,6 +50,11 @@ export default function ResultPage() {
 
     try {
       const response = await saveTrainingSessionResult(result);
+      if (response.status === "unauthorized") {
+        setSaveUiState("idle");
+        return;
+      }
+
       const nextResult = markTrainingResultAsSynced(result.id, response.sessionId);
       if (nextResult) {
         setResult(nextResult);

@@ -238,7 +238,11 @@ function toSaveTrainingSessionPayload(result: TrainingResult): SaveTrainingSessi
   };
 }
 
-export async function saveTrainingSessionResult(result: TrainingResult) {
+export type SaveTrainingSessionResultResponse =
+  | { status: "created" | "completed"; sessionId: string }
+  | { status: "unauthorized" };
+
+export async function saveTrainingSessionResult(result: TrainingResult): Promise<SaveTrainingSessionResultResponse> {
   const response = await fetch("/api/training-sessions", {
     method: "POST",
     headers: {
@@ -247,8 +251,12 @@ export async function saveTrainingSessionResult(result: TrainingResult) {
     body: JSON.stringify(toSaveTrainingSessionPayload(result)),
   });
 
+  if (response.status === 401) {
+    return { status: "unauthorized" as const };
+  }
+
   if (!response.ok) {
-    throw new Error("SAVE_TRAINING_SESSION_FAILED");
+    throw new Error(`SAVE_TRAINING_SESSION_FAILED:${response.status}`);
   }
 
   return (await response.json()) as { status: "created" | "completed"; sessionId: string };
